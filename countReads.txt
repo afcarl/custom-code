@@ -1,0 +1,9 @@
+find /Raid/San/fastq/120525_SN476_0126_BD0DVDACXX/D0DVDACXX_casava_1_mismatches/Project_N035 -name "*R1_001.fastq.gz" >> tocount.tmp
+
+NUM_THREADS=2
+COMMANDFILE=countReads.cmd.lst
+rm -f ${COMMANDFILE}
+while read PATH
+do
+echo "zcat ${PATH} | wc -l" >> ${COMMANDFILE}
+done < tocount.txt

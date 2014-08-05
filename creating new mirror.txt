@@ -1,0 +1,21 @@
+= Making new UCSC genome browser mirror (sandbox) =
+=== Step 1: create and populate the cgi directory for the mirror ===
+;navigate to cgi-bin: 
+<code>cd /var/www/</code>
+;copy files of one of GB mirrors into new directory:
+<code>sudo cp -r cgi-bin-jsp/ cgi-bin-newmirror/</code>
+;change ownership of the new directory to "www-data" (rather optional):
+<code>sudo chown www-data:www-data cgi-bin-newmirror</code>
+=== Step 2: add alias entry to "moma-other" config file ===
+<code>sudo nano /etc/apache2/sites-enabled/moma-other</code>
+;insert:
+<code># newMirror genome-mirror:
+
+ScriptAlias /genome-mirror-newMirror/cgi-bin /var/www/cgi-bin-newMirror
+
+Alias /genome-mirror-newMirror /var/www/html</code>
+=== Step 3: reload the server's configuration files: ===
+<code> sudo service apache2 reload</code>
+=== Step 4: test the functionality of the browser: ===
+Go to moma.ki.au.dk/genome-mirror-newMirror to confirm the mirror is up and running.
+Remember to first request the IT support team at AU to add the genome-mirror-newMirror to the list of subdomains.

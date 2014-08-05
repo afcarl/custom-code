@@ -1,0 +1,78 @@
+indlists <- c("gene1","gene2") # input gene names here
+for (i in 1:length(fullannot)) {
+	annot = fullannot[[i]]
+	indexlist = annot[match(indlists,names(annot))]
+	eval(parse(text = paste(list[i], "test = as.data.frame(testfunc(eset=dataf_noXY_PC@bmatrix[unlist(indexlist),],concov=concov,testmethod=testmethod,Padj=Padj,gcase=gcase,gcontrol=gcontrol, groupinfo=dataf_PC@groupinfo))", sep = "")))
+	
+}
+
+require(WriteXLS)
+WriteXLS(paste(list, "test", sep = ""), ExcelFileName = "test_PC.xls", SheetNames = list, row.names = TRUE)
+
+for (i in 1:length(fullannot)) {
+print(match("KIR6.2",names(fullannot[[i]])))
+}
+
+updatedGenes <- c("MT1X","SLC25A33","CEBPD","CEBPB","ANXA3","FKBP5","C10ORF10","LPL","TBC1D8","SESN1","LGR5","FOXO3","LAMB3","KLF9","SLC38A3","FAM184B","GLUL","MYH4","CTSF","FLRT3","IRS2","KCNN3","TSC22D1","UCKL1","COL19A1","GABARAPL1","ZNF772","ZBTB16","ABCC5","GPR116","KLF15","MYH1","LMOD2","SLC43A1","BCL6","TSPAN8","ABCA5","SHISA2","SLC19A2","KLHL34","PRKAG3","KLF13","LRRC2","THBS4","GPD1L","ARHGAP28","PEG10","IFI27","MYH8","RGCC","SNED1","MSTN","HK2","AASS","PER1","RBM20","TNFAIP3","CHD3","CYR61","MT2A","ACVR1","MPC1","SGMS2","CSRP3","DIRC2","IL17RD","MYBPH","YPEL3","SLC16A10","GTF2B","PPARGC1B","PTPN3","HCN1","KY","MPP7","DIAPH1","RUNX1","SSX2IP","FGD4","TGFB2","TET1","UBE2D1","HBP1","S1PR1","ARNTL","ELL2","FITM1","GAB1","NBPF1","CAB39L","FMO2","LDHD","ACSS1","ARID5B","SLC25A34","TNNT1","CHRNA1","INSR","SPSB3","SDPR","MYF6","IER5","EIF4EBP1","PGAP1","LPP","AKR1C3","ERBB3","OSBPL9","EPAS1","FOXO1","KLF10","MBNL3","MYH3","RPL39","MT1E","PFKFB2","TIMM44")
+updatedGenes_probes <- NULL
+for (i in 1:length(updatedGenes)){
+	updatedGenes_probes <- unique(c(updatedGenes_probes,eval(parse(text = paste('dataf_noXY_PC@TSS1500Ind$SID$','"',updatedGenes[i],'"',sep=""))),eval(parse(text = paste('dataf_noXY_PC@TSS200Ind$SID$','"',updatedGenes[i],'"',sep=""))), eval(parse(text = paste('dataf_noXY_PC@UTR5Ind$SID$','"',updatedGenes[i],'"',sep=""))),eval(parse(text = paste('dataf_noXY_PC@EXON1Ind$SID$','"',updatedGenes[i],'"',sep=""))),eval(parse(text = paste('dataf_noXY_PC@GENEBODYInd$SID$','"',updatedGenes[i],'"',sep=""))), eval(parse(text = paste('dataf_noXY_PC@UTR3Ind$SID$','"',updatedGenes[i],'"',sep="")))))
+}
+
+
+
+
+gcase = "SevereDiabetes"
+gcontrol = "Control"
+Padj = "BH"
+
+# updatedGenes_probes containes probe IDs under consideration
+beta = dataf_noXY_logit_PC@bmatrix[updatedGenes_probes,]
+group = dataf_noXY_logit_PC@groupinfo
+grouplev = group[, 2]
+caseind = which(grouplev %in% gcase)
+controlind = which(grouplev %in% gcontrol)
+
+lev1 = caseind
+lev2 = controlind
+
+eset = beta[, c(lev1, lev2)]
+eset2 = dataf_noXY_PC@bmatrix[updatedGenes_probes,c(lev1, lev2)]
+
+            require(limma)
+            cat("Performing limma...\n")
+            TS = as.factor(c(rep("T", length(lev1)), rep("C", 
+                length(lev2))))
+            SS = rep(1:length(lev1), 2)
+
+                design = model.matrix(~0 + TS)
+                rownames(design) = colnames(eset)
+                colnames(design) = c("C", "T")
+                fit = lmFit(eset, design)
+                cont.matrix = makeContrasts(comp = T - C, levels = design)
+                fit2 = contrasts.fit(fit, cont.matrix)
+                fit2 = eBayes(fit2)
+                result1 = topTable(fit2, coef = 1, adjust.method = Padj, 
+                  number = nrow(fit2))
+
+            
+            testout = result1[match(rownames(eset), result1[, 
+                1]), "P.Value"]
+       
+        adjustP = p.adjust(testout, method = Padj)
+        difb = apply(eset2, 1, function(x) {
+            mean(x[1:length(lev1)]) - mean(x[(length(lev1) + 
+                1):ncol(eset2)])
+        })
+        out = cbind(testout, adjustP, difb, rowMeans(eset[, 
+            1:length(lev1)]), rowMeans(eset[, (length(lev1) + 
+            1):ncol(eset)]))
+        rownames(out) = rownames(eset)
+        colnames(out) = c("P-Value", "Adjust Pval", "Beta-Difference", 
+            paste("Mean", paste(gcase, collapse = "_"), sep = "_"), 
+            paste("Mean", paste(gcontrol, collapse = "_"), sep = "_"))
+    }
+    out = outputDMfunc(out = out, rawpcut = rawpcut, adjustpcut = adjustpcut, 
+        betadiffcut = betadiffcut)
+    return(out)
+}

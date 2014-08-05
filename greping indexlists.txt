@@ -1,0 +1,17 @@
+
+for (i in 1:length(indlists)) {
+	cat("doing ", indlists[i], "\n")
+	eval(parse(text = paste(indlists[i]," = dataf_PC@bmatrix[grep(\"", indlists[i], "$|", indlists[i],";\",dataf_PC@annot[,22]),]", sep = "")))
+}
+
+bmatrix = indlists[1]
+
+for (i in 2:length(indlists)) {
+	cat("doing ", indlists[i], "\n")
+	eval(parse(text = paste("bmatrix = rbind(bmatrix,",indlists[i],")", sep = "")))
+}
+
+for (i in 1:length(indlists)) {
+	cat("doing ", indlists[i], "\n")
+	eval(parse(text = paste("rm(",indlists[i],")", sep = "")))
+}

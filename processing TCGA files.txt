@@ -1,0 +1,137 @@
+# RNA-seq data processing
+sed -i 's/|/\t/g' *
+sed -i 's/gene_id\traw_count\tscaled_estimate\ttranscript_id/HUGO\tgene_id\traw_count\tscaled_estimate\ttranscript_id/g' *
+
+R
+
+require(plyr)
+data <- lapply(dir(), read.table, col.names=c("HUGO","gene_id","raw_count","scaled_estimate","transcript_id"), na.strings="-999.00")
+counts_BRCA_all <- as.data.frame(matrix(nrow = length(data[[1]][,1])-30, ncol = length(data)+1))
+colnames(counts_BRCA_all) <- c("HUGO",substring(dir(),9,52))
+counts_BRCA_all[,1] <- as.character(data[[i]][-seq(1,30),1])
+
+for(i in 1:length(data)){
+counts_BRCA_all[,1+i] <- as.data.frame(data[[i]][-seq(1,30),3])
+}
+
+counts_BRCA_all[16272,1] <- "SLC35E2B"
+rownames(counts_BRCA_all) <- counts_BRCA_all[,1]
+counts_BRCA_all <- counts_BRCA_all[,-1]
+
+maping <- read.delim("D:/TCGA PRAD/FILE_SAMPLE_MAP.txt")
+maping <- maping[-(1:670),]
+maping[,1] <- substring(maping[,1],9,52)
+maping[,2] <- substring(maping[,2],1,15)
+
+for (i in 2:ncol(counts_BRCA_all)) {
+	colnames(counts_BRCA_all)[i] <- maping[which(maping[,1]==colnames(counts_BRCA_all)[i]),2]
+	counts_BRCA_all[,i] <- as.double(levels(counts_BRCA_all[,i])[as.double(counts_BRCA_all[,i])])
+}
+source("D:/TCGA PRAD/sampleNames.R")
+counts_BRCA_all <- counts_BRCA_all[,c(ANs,Ts)]
+
+cpm_PRAD_plusOne <- counts_BRCA_all
+for (i in 1:331) cpm_PRAD_plusOne[,i] <- (counts_BRCA_all[,i]+1)/(lib_size[i]/10^6)
+
+require(edgeR)
+targets <- rbind(cbind(ANs,"AN"),cbind(Ts,"T"))
+targets <- as.data.frame(targets)
+colnames(targets) <- c("ID","Type")
+y <- DGEList(counts=counts_BRCA_all,group=targets$Type)
+y <- DGEList(counts=counts_BRCA_all,group=targets$Type)
+y <- estimateTagwiseDisp(y)
+et <- exactTest(y,dispersion="tagwise")
+et$table[,4] <- p.adjust(et$table[,3],method="BH")
+colnames(et$table)[4] <- "BH.PValue"
+result <- cbind(et$table,cpm_PRAD_plusOne)
+write.table(result,col.names=TRUE,row.names=TRUE,sep="\t",file="PRAD_rna-seq.tab")
+
+# 450k data
+# on server (lots of memory required)
+require(minfi)
+setwd("D:/TCGA PRAD/DNA_Methylation/JHU_USC__HumanMethylation450/Level_1")
+targets <- read.450k.sheet(base=getwd())
+RGset <- read.450k.exp(getwd(),targets)
+MSet.raw <- preprocessRaw(RGset)
+bmatrix <- getBeta(MSet.raw)
+save(bmatrix,targets,file="PRAD.450k.RData")
+
+# on local machine (IMA won't work on linux machine)
+load("PRAD.450k.RData")
+require(IMA)
+detectP <- matrix(nrow=nrow(bmatrix),ncol=ncol(bmatrix),0.01)
+setClass("exprmethy450", representation(bmatrix = "matrix", annot = "matrix", detectP = "matrix", groupinfo = "data.frame"), where = topenv(parent.frame()))
+data = new("exprmethy450", bmatrix = as.matrix(bmatrix), annot = as.matrix(annot), detectP = as.matrix(detectP), groupinfo = targets[,c(1,4)])
+dataf <- IMA.methy450PP(data,na.omit=TRUE,peakcorrection=TRUE,normalization=FALSE, transfm=FALSE,samplefilterdetectP=FALSE,sitefilterdetectP=FALSE,locidiff=FALSE,XYchrom=FALSE,snpfilter=FALSE)
+site_res <- sitetest2(beta=dataf@bmatrix,group=dataf@groupinfo,gcontrol="AN",gcase="T",testmethod="limma",Padj="BH")
+site_res_bmatrix <- sitetest2(beta=data@bmatrix,group=dataf@groupinfo,gcontrol="AN",gcase="T",testmethod="limma",Padj="BH")
+site_res <- sitetest2(beta=dataf@bmatrix,group=dataf@groupinfo,gcontrol="AN",gcase="T",testmethod="limma",Padj="BH")
+out <- cbind(site_res[,1:2],site_res_bmatrix[rownames(site_res),3:5],data@annot[rownames(site_res),c(22,24,12,13,25,26)],round(data@bmatrix,digits=3)[rownames(site_res),]
+write.table(out,col.names=TRUE,row.names=TRUE,sep="\t",file="PRAD_450k.tab")
+
+# manual peak-correction
+orignalrownm = rownames(bmatrix)
+bmatrix_pc = na.omit(bmatrix)
+temp = orignalrownm %in% rownames(bmatrix_pc)
+load("./fullannotInd.rda")
+fullannot <- fullannot[rownames(bmatrix),]
+annotation = fullannot[temp, ]
+temp = nrow(bmatrix) - nrow(bmatrix_pc)
+cat(temp, "sites contain missing value and are removed\n")
+bmatrix_pc <- peak.correction(bmatrix_pc,annotation)
+mmatrix_pc <- Beta2M(bmatrix_pc)
+
+# R functions required for peak-correction
+peak.correction <- function (data, anno) 
+{
+    anno <- anno[row.names(data), ]
+    TI <- anno[, "INFINIUM_DESIGN_TYPE"] == "I"
+    TII <- anno[, "INFINIUM_DESIGN_TYPE"] == "II"
+    corrected.data <- apply(data, 2, function(B) {
+        SI <- summits(B[TI])
+        SII <- summits(B[TII])
+        BI <- correctI(as.vector(B[TI]), SI, SII)
+        BII <- correctII(as.vector(B[TII]), SI, SII)
+        return(c(BI, BII))
+    })
+    row.names(corrected.data) <- c(row.names(data[TI, ]), row.names(data[TII, 
+        ]))
+    return(corrected.data)
+}
+correctI <- function (BetaValues, SI, SII) 
+{
+    return(BetaValues)
+}
+
+correctII <- function (BetaValues, SI, SII) 
+{
+    M <- Beta2M(BetaValues)
+    sigma_u <- SII[1]/SI[1]
+    sigma_m <- SII[2]/SI[2]
+    M <- sapply(M, function(x) {
+        if (x < 0) 
+            return(x/sigma_u)
+        else return(x/sigma_m)
+    })
+    return(M2Beta(M))
+}
+
+summits <- function (BetaValues) 
+{
+    d <- density(BetaValues)
+    yneg <- d$y[1:which(d$x > M2Beta(0))[1]]
+    ypos <- d$y[which(d$x > M2Beta(0))[1]:length(d$y)]
+    sa <- d$x[which(d$y == max(yneg))]
+    sb <- d$x[which(d$y == max(ypos))]
+    return(c(Beta2M(sa), Beta2M(sb)))
+}
+
+M2Beta <- function (M) 
+{
+    return((2^M)/(2^M + 1))
+}
+
+Beta2M <- function (B) 
+{
+    return(log2(B/(1 - B)))
+}

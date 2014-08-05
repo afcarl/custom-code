@@ -1,0 +1,31 @@
+Phenotype
+   Sample.name            Group
+1     1_023JJA          Control
+2       2_02BA ModerateDiabetes
+3      3_001BJ   SevereDiabetes
+4     4_027KAN          Control
+
+sampNames <- t(Phenotype)[1,]
+sampGroups <- as.factor(Phenotype[,2])
+
+require(RColorBrewer)
+pal = brewer.pal(8, "Dark2")
+col <- pal[sampGroups]
+
+o_50 <- order(-apply(bmatrix,1,sd))[1:50]
+d <- dist(t(bmatrix[updatedGenes_probes,]))
+fit <- cmdscale(d)
+
+xlim <- range(fit[, 1]) * 1.2
+ylim <- range(fit[, 2]) * 1.2
+main <- sprintf("Beta MDS\n2500 Selected loci based on supplied genes")
+plot(0, 0, type = "n", xlim = xlim, ylim = ylim, xlab = "",ylab = "", main = main)
+text(fit[, 1], fit[, 2], sampNames, cex=.5, col=col)
+legend("topleft", legend = levels(sampGroups), ncol = 3,text.col = pal[1:3])
+
+d <- dist(t(dataf_logit_PC_STATreg@bmatrix[,]))
+fit <- cmdscale(d)
+
+xlim <- range(fit[, 1]) * 1.1
+ylim <- range(fit[, 2]) * 1.1
+main <- sprintf("M-value MDS\n3161 loci in STAT-regulated genes")

@@ -1,0 +1,9 @@
+NUM_THREADS=12
+COMMANDFILE=run_count_pairs.cmd.lst
+rm -f ${COMMANDFILE}
+while read REF SAMPLE
+do
+echo "samtools sort -n $REF ./${SAMPLE}/pairs/accepted_hits_s | samtools view -h ./${SAMPLE}/pairs/accepted_hits_s.bam > ./${SAMPLE}/pairs/accepted_hits.sam | htseq-count --stranded=no ./${SAMPLE}/pairs/accepted_hits.sam ./merged_asm/transcripts.gtf > ${SAMPLE}_p.mx" >> ${COMMANDFILE}
+done < accepted_hits_pairs.lst
+# run mexecute
+mexecute -P ${NUM_THREADS} -l ${COMMANDFILE}.mexecute.log ${COMMANDFILE} > ${COMMANDFILE}.error_and_out 2>&1
