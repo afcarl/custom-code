@@ -87,16 +87,19 @@ pval_null_zscore <- NULL
 means <- NULL
 sds <- NULL
 Ds <- NULL
+Zs <- NULL
 for (i in 1:22000) {
-	#Ds[[i]] <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=2))[,1]
 	temp <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
 	pval_null_zscore[[i]] <- temp[1,]
 	Ds[[i]] <- temp[2,]
 	means[[i]] <- temp[3,]
 	sds[[i]] <- temp[4,]
+	Zs[[i]] <- temp[5,]
 }
 pval_null_zscore <- unlist(pval_null_zscore)
 means <- unlist(means)
 sds <- unlist(sds)
 Ds <- unlist(Ds)
-
+Zs <- unlist(Zs)
+rm(i)
+rm(temp)
