@@ -11,7 +11,6 @@ null_spear_gb <- vector(mode="numeric",length=(17728))
 null_gb <- vector(mode="numeric",length=(17728))
 null_pr <- vector(mode="numeric",length=(17728))
 
-
 for (i in 1:17728) {
 	null_gb_an <- cor.test(bmatrix_BRCA_BODY2[workingList_BRCA4[i],ANs2],sample(cpm_BRCA_plusOne[workingList_BRCA4[i],ANs2]),method="spearman")$estimate
 	null_gb[i] <- null_gb_an
@@ -42,7 +41,8 @@ density(pr_expr_spear_T[top1000_pgm],from=-1,to=1)$y),type=c(rep("null",512),rep
 
 plotter3 <- rbind(plotter1,plotter2)
 plotter3$element <- c(rep("Gene body meth. vs expr.",2560),rep("Promoter meth. vs expr.",2560))
-ggplot(plotter3,aes(x=correlation,y=density)) + geom_line(aes(colour=type),lwd=0.5) +facet_wrap(facets=~element) +ggtitle("correlations of methylation with expression")+ theme(legend.position="bottom")  + scale_colour_manual(values=cb_palette)
+plotter3$type <- factor(plotter3$type,levels=c("null","AN_all","T_all","AN_top1000","T_top1000"))
+ggplot(plotter3,aes(x=correlation,y=density)) + geom_line(aes(colour=type),lwd=0.5) +facet_wrap(facets=~element) +ggtitle("correlations of methylation with expression") + theme_bw() + theme(legend.position="bottom") + scale_colour_manual(values=cb_palette)
 
 plotter4 <- data.frame(delta_cor=rep(density(null_gb,from=-1,to=1)$x,3),density=c(density(null_spear_gb,from=-1,to=1)$y,density(Vectorize(findDiff)(gb_expr_spear_AN,gb_expr_spear_T),from=-1,to=1)$y,density(Vectorize(findDiff)(gb_expr_spear_AN[top1000_pgm],gb_expr_spear_T[top1000_pgm]),from=-1,to=1)$y),type=c(rep("null",512),rep("allGenes",512),rep("top1000",512)))
 
@@ -50,5 +50,6 @@ plotter5 <- data.frame(delta_cor=rep(density(null_pr,from=-1,to=1)$x,3),density=
 
 plotter6 <- rbind(plotter4,plotter5)
 plotter6$element <- c(rep("Gene body meth. vs expr.",1536),rep("Promoter meth. vs expr.",1536))
+plotter6$type <- factor(plotter6$type,levels=c("null","allGenes","top1000"))
 
-ggplot(plotter6,aes(x=delta_cor,y=density)) + geom_line(aes(colour=type),lwd=0.5) + ggtitle("change of gene-wise correlations of methylation vs expression") + facet_wrap(facets=~element) + theme(legend.position="bottom")  + scale_colour_manual(values=cb_palette)
+ggplot(plotter6,aes(x=delta_cor,y=density)) + geom_line(aes(colour=type),lwd=0.5) + ggtitle("change of gene-wise correlations of methylation vs expression") + facet_wrap(facets=~element) + theme_bw() + theme(legend.position="bottom") + scale_colour_manual(values=cb_palette)

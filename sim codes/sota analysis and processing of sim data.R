@@ -44,9 +44,18 @@ results <- cbind(gb_res[,1],pr_res[,1],et$table[,3])
 results <- as.data.frame(results)
 results$fishers <- apply(results,1,fishersMethod)
 
+
+fishersMethod <- function(x) pchisq(-2 * sum(log(x)),df=2*length(x),lower=FALSE)
 library(pROC)
-calculateAUC <- function(x,vector) {auc(predictor=c(vector[(1+x*1000):(1000+x*1000)],vector[(21001+x*1000):(22000+x*1000)]),response=c(rep("Pos",1000),rep("Neg",1000)))}
 calculateAUC <- function(x,vector) {auc(predictor=c(vector[(1+x*1000):(1000+x*1000)],vector[(11001+x*1000):(12000+x*1000)]),response=c(rep("Pos",1000),rep("Neg",1000)))}
+calculateAUC <- function(x,vector) {auc(predictor=c(vector[(1+x*100):(100+x*100)],vector[(1101+x*100):(1200+x*100)]),response=c(rep("Pos",100),rep("Neg",100)))}
+
+calculateAUC <- function(x,vector) {auc(predictor=c(vector[(1+x*1000):(1000+x*1000)],vector[(21001+x*1000):(22000+x*1000)]),response=c(rep("Pos",1000),rep("Neg",1000)))}
+
+
+sapply(0:10,FUN=calculateAUC,vector=results[,1])
+sapply(0:10,FUN=calculateAUC,vector=results[,2])
+sapply(0:10,FUN=calculateAUC,vector=results[,3])
 sapply(0:10,FUN=calculateAUC,vector=results[,4])
 
 sapply(0:20,FUN=calculateAUC,vector=results[,4])
