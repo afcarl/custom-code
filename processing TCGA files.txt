@@ -80,6 +80,54 @@ cat(temp, "sites contain missing value and are removed\n")
 bmatrix_pc <- peak.correction(bmatrix_pc,annotation)
 mmatrix_pc <- Beta2M(bmatrix_pc)
 
+
+############################################################
+# extract probe indexes from annotation file:
+annot = annotation
+    name = "UCSC_REFGENE_NAME"
+    cpGsite = as.character(annot[, 1])
+    genelist = strsplit(as.character(annot[, name]), ";")
+    genelist[which(genelist == "character(0)")] = "NA"
+    name = "UCSC_REFGENE_GROUP"
+    refgene = strsplit(as.character(annot[, name]), ";")
+    refgene[which(refgene == "character(0)")] = "NA"
+    listlength = lapply(refgene, length)
+    listlength[listlength == 0] = 1
+    col0 = rep(1:nrow(annot), listlength)
+    col1 = rep(cpGsite, listlength)
+    col2 = unlist(genelist)
+    col3 = unlist(refgene)
+    col4 = rep(as.character(annotation[, "RELATION_TO_UCSC_CPG_ISLAND"]), 
+        listlength)
+    col5 = rep(as.character(annotation[, "UCSC_CPG_ISLANDS_NAME"]), 
+        listlength)
+    splitToRegionlist = function(grepname = c("TSS1500", "TSS200", 
+        "5'UTR", "1stExon", "Gene Body", "3'UTR")) {
+        index = col3 == grepname
+        col1sub = col1[index]
+        col2sub = col2[index]
+        temp = split(col1sub, col2sub)
+        returnSID = lapply(temp, unique)
+        col0sub = col0[index]
+        temp = split(col0sub, col2sub)
+        returnPID = lapply(temp, unique)
+        return(Ind = list(SID = returnSID, PID = returnPID))
+    }
+    TSS1500Ind = splitToRegionlist(grepname = "TSS1500")
+    TSS200Ind = splitToRegionlist(grepname = "TSS200")
+    UTR5Ind = splitToRegionlist(grepname = "5'UTR")
+    EXON1Ind = splitToRegionlist(grepname = "1stExon")
+    GENEBODYInd = splitToRegionlist(grepname = "Body")
+    UTR3Ind = splitToRegionlist(grepname = "3'UTR")
+    cat("TSS1500 region contains:", length(TSS1500Ind$SID), 
+        "UCSC REFGENE region \nTSS200 region contains:", length(TSS200Ind$SID), 
+        "UCSC REFGENE region\n5'UTR region contains:", length(UTR5Ind$SID), 
+        "UCSC REFGENE region\n1st Exon region contains:", length(EXON1Ind$SID), 
+        "UCSC REFGENE region\nGene body region contains:", length(GENEBODYInd$SID), 
+        "UCSC REFGENE region\n3'UTR region contains:", length(UTR3Ind$SID), 
+        "UCSC REFGENE region\n")
+		
+#############################################################
 # R functions required for peak-correction
 peak.correction <- function (data, anno) 
 {

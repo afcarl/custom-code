@@ -1,26 +1,6 @@
 require(ggplot2)
 require(gridExtra)
-
-for (i in 1:length(top20)) {
-	cand <- top20[i]
-	pdf(file=paste(cand,".pdf",sep=""),paper="a4r")
-	par(mfrow=c(2,2))
-	temp <- t(rbind(bmatrix_BRCA_PROMOTER[cand,ANs],bmatrix_BRCA_BODY[cand,ANs],cpm_BRCA_plusOne[cand,ANs],rep("AN",75)))
-	temp <- rbind(temp,t(rbind(bmatrix_BRCA_PROMOTER[cand,Ts],bmatrix_BRCA_BODY[cand,Ts],cpm_BRCA_plusOne[cand,Ts],rep("T",75))))
-	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
-	temp <- as.data.frame(temp)
-	temp[,1] <- as.numeric.factor(temp[,1])
-	temp[,2] <- as.numeric.factor(temp[,2])
-	temp[,3] <- as.numeric.factor(temp[,3])
-	
-	plot1 <- ggplot(temp,aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + geom_point(alpha=0.75) + ggtitle(cand) + xlab("Pr. meth.") + ylab("GB. meth.") + stat_density2d(alpha=0.5) + theme(legend.position="bottom")
-	plot2 <- qplot(temp$sampleType,temp$CPM,geom="boxplot") + theme_bw() + scale_y_log10() +xlab("") +ylab("Expression") + ggtitle(cand)
-	plot3 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("Pr. meth.")  + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom")
-	plot4 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("GB. meth.")  + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom")
-	print(multiplot(plot1,plot3,plot2,plot4,cols=2))
-	dev.off()
-}
-
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   require(grid)
 
@@ -55,4 +35,79 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
                                       layout.pos.col = matchidx$col))
     }
   }
+}
+
+
+# training data alone
+for (i in 1:length(top20)) {
+	cand <- top20[i]
+	pdf(file=paste(cand,".pdf",sep=""),width=11.7,height=8.27)
+	temp <- t(rbind(mmatrix_BRCA_PROMOTER_top20_train[cand,ANs],mmatrix_BRCA_BODY_top20_train[cand,ANs],cpm_BRCA_top20_train[cand,ANs],rep("AN",75)))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_train[cand,Ts],mmatrix_BRCA_BODY_top20_train[cand,Ts],cpm_BRCA_top20_train[cand,Ts],rep("T",75))))
+	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
+	temp <- as.data.frame(temp)
+	temp[,1] <- as.numeric.factor(temp[,1])
+	temp[,2] <- as.numeric.factor(temp[,2])
+	temp[,3] <- as.numeric.factor(temp[,3])
+	
+	plot1 <- ggplot(temp,aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + geom_point(alpha=0.75) + ggtitle(cand) + xlab("Pr. meth.") + ylab("GB. meth.") + stat_density2d(alpha=0.5) + theme(legend.position="bottom")
+	plot2 <- qplot(temp$sampleType,temp$CPM,geom="boxplot") + theme_bw() + scale_y_log10() +xlab("") +ylab("Expression") + ggtitle(cand)
+	plot3 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("Pr. meth.")  + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom")
+	plot4 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("GB. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom")
+	print(multiplot(plot1,plot3,plot2,plot4,cols=2))
+	dev.off()
+}
+
+colour_palette <- c("green4","green4","orangered4","salmon3")
+# training + prediction data using subseted matrices
+for (i in 1:length(top20)) {
+	cand <- top20[i]
+	pdf(file=paste(cand,".pdf",sep=""),width=11.7,height=8.27)
+	temp <- t(rbind(mmatrix_BRCA_PROMOTER_top20_train[cand,ANs],mmatrix_BRCA_BODY_top20_train[cand,ANs],cpm_BRCA_top20_train[cand,ANs],rep("AN",75)))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_train[cand,Ts],mmatrix_BRCA_BODY_top20_train[cand,Ts],cpm_BRCA_top20_train[cand,Ts],rep("T",75))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_predict[cand,Ts_toPredict],mmatrix_BRCA_BODY_top20_predict[cand,Ts_toPredict],cpm_BRCA_top20_predict[cand,Ts_toPredict],rep("T_unseen",length(Ts_toPredict)))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_predict[cand,ANs_toPredict],mmatrix_BRCA_BODY_top20_predict[cand,ANs_toPredict],cpm_BRCA_top20_predict[cand,ANs_toPredict],rep("AN_unseen",length(ANs_toPredict)))))
+	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
+	temp <- as.data.frame(temp)
+	temp[,1] <- as.numeric.factor(temp[,1])
+	temp[,2] <- as.numeric.factor(temp[,2])
+	temp[,3] <- as.numeric.factor(temp[,3])
+	
+	plot1 <- ggplot(temp[1:150,],aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + geom_point(alpha=0.75) + stat_density2d(alpha=0.6) + geom_point(data=temp[151:936,],aes(x=PROMOTER,y=BODY,colour=sampleType),alpha=0.2) + ggtitle(cand) + xlab("Pr. meth.") + ylab("GB. meth.") + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	plot2 <- qplot(temp$sampleType,temp$CPM,geom="boxplot") + theme_bw() + scale_y_log10() +xlab("") +ylab("Expression") + ggtitle(cand)
+	plot3 <- ggplot(temp[1:150,],aes(x=PROMOTER,y=CPM,colour=sampleType)) +theme_bw() + scale_y_log10() + geom_point(alpha=0.75) + stat_density2d(alpha=0.6) + geom_point(data=temp[151:936,],aes(x=PROMOTER,y=CPM,colour=sampleType),alpha=0.2) + ggtitle(cand) + xlab("Pr. meth.") + ylab("Expression") + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	plot4 <- ggplot(temp[1:150,],aes(x=BODY,y=CPM,colour=sampleType)) +theme_bw() + scale_y_log10() + geom_point(alpha=0.75) + stat_density2d(alpha=0.6) + geom_point(data=temp[151:936,],aes(x=BODY,y=CPM,colour=sampleType),alpha=0.2) + ggtitle(cand) + xlab("GB meth.") + ylab("Expression") + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	print(multiplot(plot1,plot3,plot2,plot4,cols=2))
+	dev.off()
+}
+
+colour_palette <- c("red","green4","salmon3","yellowgreen","yellowgreen","salmon3")
+names(colour_palette) <- c("FN","FP","TP","TN","AN","T")
+# training contours + prediction data points labelled according to prediction
+for (i in 1:length(top20)) {
+	cand <- top20[i]
+	pdf(file=paste(cand,"_predictions.pdf",sep=""),width=11.7,height=8.27)
+	TPs <- rownames(predictions[[i]][which(predictions[[i]][Ts_toPredict,2] >= 0.5),])
+	FNs <- rownames(predictions[[i]][which(predictions[[i]][Ts_toPredict,2] < 0.5),])
+	TNs <- rownames(predictions[[i]][which(predictions[[i]][ANs_toPredict,2] < 0.5),])
+	FPs <- rownames(predictions[[i]][which(predictions[[i]][ANs_toPredict,2] >= 0.5),])
+	temp <- t(rbind(mmatrix_BRCA_PROMOTER_top20_train[cand,ANs],mmatrix_BRCA_BODY_top20_train[cand,ANs],cpm_BRCA_top20_train[cand,ANs],rep("AN",75)))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_train[cand,Ts],mmatrix_BRCA_BODY_top20_train[cand,Ts],cpm_BRCA_top20_train[cand,Ts],rep("T",75))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_predict[cand,c(FPs,FNs)],mmatrix_BRCA_BODY_top20_predict[cand,c(FPs,FNs)],cpm_BRCA_top20_predict[cand,c(FPs,FNs)],c(rep("FP",length(FPs)),rep("FN",length(FNs))))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER_top20_predict[cand,c(TNs,TPs)],mmatrix_BRCA_BODY_top20_predict[cand,c(TNs,TPs)],cpm_BRCA_top20_predict[cand,c(TNs,TPs)],c(rep("TN",length(TNs)),rep("TP",length(TPs))))))
+	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
+	temp <- as.data.frame(temp)
+	temp[,1] <- as.numeric.factor(temp[,1])
+	temp[,2] <- as.numeric.factor(temp[,2])
+	temp[,3] <- as.numeric.factor(temp[,3])
+
+	from_f <- 151
+	to_f <- 151+length(c(FNs,FPs))
+	from_t <- 151+length(c(FNs,FPs))+1
+	to_t <- 936
+	plot1 <- ggplot(temp[1:150,],aes(x=PROMOTER,y=CPM,colour=sampleType)) +theme_bw() + scale_y_log10() + stat_density2d(alpha=0.3) + geom_point(data=temp[from_t:to_t,],aes(x=PROMOTER,y=CPM,colour=sampleType),alpha=0.2) + geom_point(data=temp[from_f:to_f,],aes(x=PROMOTER,y=CPM,colour=sampleType),alpha=0.65) + ggtitle(cand) + xlab("Pr. meth.") + ylab("Expression") + theme(legend.position="bottom") + scale_colour_manual(breaks=c("FN","FP","TN","AN","TP","T"),values=colour_palette)
+	plot2 <- ggplot(temp[1:150,],aes(x=BODY,y=CPM,colour=sampleType)) +theme_bw() + scale_y_log10() + stat_density2d(alpha=0.3) + geom_point(data=temp[from_t:to_t,],aes(x=BODY,y=CPM,colour=sampleType),alpha=0.2) + geom_point(data=temp[from_f:to_f,],aes(x=BODY,y=CPM,colour=sampleType),alpha=0.65) + ggtitle(cand) + xlab("GB meth.") + ylab("Expression") + theme(legend.position="bottom") + scale_colour_manual(breaks=c("FN","FP","TN","AN","TP","T"),values=colour_palette)
+	plot3 <- ggplot(temp[1:150,],aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + stat_density2d(alpha=0.3) + geom_point(data=temp[from_t:to_t,],aes(x=PROMOTER,y=BODY,colour=sampleType),alpha=0.2) + geom_point(data=temp[from_f:to_f,],aes(x=PROMOTER,y=BODY,colour=sampleType),alpha=0.65) + ggtitle(cand) + xlab("Pr. meth.") + ylab("GB. meth.") + theme(legend.position="bottom") + scale_colour_manual(breaks=c("FN","FP","TN","AN","TP","T"),values=colour_palette)
+	print(multiplot(plot1,plot3,plot2,cols=2))
+	dev.off()
 }
