@@ -31,6 +31,7 @@ sim.data <- mclapply(1:numJobs, mc.cores=47, mc.cleanup = TRUE, mc.preschedule =
 	error_m <- sim.params[current_param,6]
 	error_e <- sim.params[current_param,7]
 	
+	# Normals
 	n=100
 	Sigma <- matrix(c(3,1.5,-1.5,1.5,3,-3,-1.5,-3,3),3,3,byrow=TRUE)
 	temp <- mvrnorm(n=n, c(0,0,0), Sigma)
@@ -60,9 +61,9 @@ sim.data <- mclapply(1:numJobs, mc.cores=47, mc.cleanup = TRUE, mc.preschedule =
 		temp <- mvrnorm(n=n, c(0,0,0), Sigma)
 		temp_counts <- temp[,1]
 		temp_gb <- temp[,2]
-		temp_gb <- transform(vector=temp_gb,targetMean=diff_m,targetSd=2.5*error_m)
+		temp_gb <- transform(vector=temp_gb,targetMean=0+diff_m,targetSd=2.5*error_m)
 		temp_pr <- temp[,3]
-		temp_pr <- transform(vector=temp_pr,targetMean=-diff_m,targetSd=2.5*error_m)
+		temp_pr <- transform(vector=temp_pr,targetMean=0-diff_m,targetSd=2.5*error_m)
 		temp_counts <- trunc(transform(vector=temp_counts,targetMean=read_count+diff_e,targetSd=error_e*2.5) + rnorm(n,0,error_e))
 		temp_t[1:n,1:3] <- cbind(temp_counts,temp_gb,temp_pr)
 		temp_pr_cpg <- matrix(ncol=11,nrow=nrow(temp_t[1:n,]))

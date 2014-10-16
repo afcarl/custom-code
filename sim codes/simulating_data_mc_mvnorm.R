@@ -19,9 +19,9 @@ sim.params <- expand.grid(read_counts,delta_correlations,diff_m,diff_e,error_m,e
 sim.params <- as.data.frame(sim.params)
 colnames(sim.params) <- c("read_counts","delta_correlations","difference_m","difference_e","error_m","error_e")
 
-numJobs <- nrow(sim.params)*100
+numJobs <- nrow(sim.params)*1000
 sim.data <- mclapply(1:numJobs, mc.cores=47, mc.cleanup = TRUE, mc.preschedule = TRUE, function(i) {
-	current_param <- ceiling(i / 100)
+	current_param <- ceiling(i / 1000)
 	read_count <- sim.params[current_param,1]
 	delta_correlation <- sim.params[current_param,2]
 	diff_m <- sim.params[current_param,3]
@@ -29,6 +29,7 @@ sim.data <- mclapply(1:numJobs, mc.cores=47, mc.cleanup = TRUE, mc.preschedule =
 	error_m <- sim.params[current_param,5]
 	error_e <- sim.params[current_param,6]
 	
+	# Normals
 	n = 100
 	Sigma <- matrix(c(3,1.5,-1.5,1.5,3,-3,-1.5,-3,3),3,3,byrow=TRUE)
 	temp <- mvrnorm(n=n, c(0,0,0), Sigma)
@@ -56,9 +57,9 @@ sim.data <- mclapply(1:numJobs, mc.cores=47, mc.cleanup = TRUE, mc.preschedule =
 	temp <- mvrnorm(n=n, c(0,0,0), Sigma)
 	temp_counts <- temp[,1]
 	temp_gb <- temp[,2]
-	temp_gb <- transform(vector=temp_gb,targetMean=diff_m,targetSd=2.5*error_m)
+	temp_gb <- transform(vector=temp_gb,targetMean=0+diff_m,targetSd=2.5*error_m)
 	temp_pr <- temp[,3]
-	temp_pr <- transform(vector=temp_pr,targetMean=-diff_m,targetSd=2.5*error_m)
+	temp_pr <- transform(vector=temp_pr,targetMean=0-diff_m,targetSd=2.5*error_m)
 	temp_counts <- trunc(transform(vector=temp_counts,targetMean=read_count+diff_e,targetSd=error_e*2.5) + rnorm(n,0,error_e))
 	temp_t <- cbind(temp_counts,temp_gb,temp_pr)
 	temp_pr_cpg <- matrix(ncol=11,nrow=nrow(temp_t[1:n,]))
