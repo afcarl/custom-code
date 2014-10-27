@@ -136,3 +136,28 @@ for (i in 1:length(top10)) {
 	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
 	dev.off()
 }
+
+
+# updated raw variables' distributions 
+colour_palette <- c("green4","green4","orangered4","salmon3")
+# progression data
+for (i in 1:10) {
+	cand <- top20[i]
+	pdf(file=paste(cand,"_updated.pdf",sep=""),width=11.7,height=8.27)
+	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,ANs],mmatrix_BRCA_BODY[cand,ANs],cpm_BRCA_plusOne[cand,ANs],rep("Adjacent normal samples",length(ANs))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,Ts],mmatrix_BRCA_BODY[cand,Ts],cpm_BRCA_plusOne[cand,Ts],rep("Tumours",length(Ts)))))
+	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
+	temp <- as.data.frame(temp)
+	temp[,1] <- as.numeric.factor(temp[,1])
+	temp[,2] <- as.numeric.factor(temp[,2])
+	temp[,3] <- as.numeric.factor(temp[,3])
+	
+	plot1 <- qplot(temp$sampleType,temp$CPM,geom="boxplot") + theme_bw() + scale_y_log10() +xlab("") +ylab("Expression") + ggtitle(cand)
+	plot2 <- qplot(temp$sampleType,temp$PROMOTER,geom="boxplot") + theme_bw() +xlab("") +ylab("Pr. meth.") + ggtitle(cand)
+	plot3 <- qplot(temp$sampleType,temp$BODY,geom="boxplot") + theme_bw()+xlab("") +ylab("GB. meth.") + ggtitle(cand)
+	plot4 <- ggplot(temp,aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + geom_point(alpha=0.75) + ggtitle(cand) + xlab("Pr. meth.") + ylab("GB. meth.") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	plot5 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + scale_y_log10() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("Pr. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	plot6 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + scale_y_log10() + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("GB. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
+	dev.off()
+}

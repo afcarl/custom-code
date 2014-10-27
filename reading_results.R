@@ -73,90 +73,13 @@ Zs <- unlist(Zs)
 rm(i)
 rm(temp)
 
-pval_null_zscore <- NULL
-means <- NULL
-sds <- NULL
-Ds <- NULL
-Zs <- NULL
-for (i in 11001:12000) {
-	temp <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
-	pval_null_zscore[[i]] <- temp[1,]
-	Ds[[i]] <- temp[2,]
-	means[[i]] <- temp[3,]
-	sds[[i]] <- temp[4,]
-	Zs[[i]] <- temp[5,]
-}
-pval_null_zscore <- unlist(pval_null_zscore)
-means <- unlist(means)
-sds <- unlist(sds)
-Ds <- unlist(Ds)
-Zs <- unlist(Zs)
-rm(i)
-rm(temp)
-summary(pval_null_zscore <= 0.05)
 
-pval_null_zscore <- NULL
-means <- NULL
-sds <- NULL
-Ds <- NULL
-Zs <- NULL
-for (i in 3341:4000) {
-	temp <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
-	pval_null_zscore[[i]] <- temp[1,]
-	Ds[[i]] <- temp[2,]
-	means[[i]] <- temp[3,]
-	sds[[i]] <- temp[4,]
-	Zs[[i]] <- temp[5,]
-}
-pval_null_zscore <- unlist(pval_null_zscore)
-means <- unlist(means)
-sds <- unlist(sds)
-Ds <- unlist(Ds)
-Zs <- unlist(Zs)
-rm(i)
-rm(temp)
-summary(pval_null_zscore <= 0.05)
+# read x-val data
 
-pval_null_zscore <- NULL
-means <- NULL
-sds <- NULL
-Ds <- NULL
-Zs <- NULL
-for (i in 2001:3000) {
-	temp <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
-	pval_null_zscore[[i]] <- temp[1,]
-	Ds[[i]] <- temp[2,]
-	means[[i]] <- temp[3,]
-	sds[[i]] <- temp[4,]
-	Zs[[i]] <- temp[5,]
+Zs <- matrix(nrow=17728,ncol=7)
+mlogliks <- NULL
+for (i in 1:17728) {
+	Zs[i,] <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
+	mlogliks[[i]] <- read.table(paste("./",i,".result",sep=""),skip=1,header=TRUE)
 }
-pval_null_zscore <- unlist(pval_null_zscore)
-means <- unlist(means)
-sds <- unlist(sds)
-Ds <- unlist(Ds)
-Zs <- unlist(Zs)
 rm(i)
-rm(temp)
-summary(pval_null_zscore <= 0.05)
-
-pval_null_zscore <- NULL
-means <- NULL
-sds <- NULL
-Ds <- NULL
-Zs <- NULL
-for (i in 1:1000) {
-	temp <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
-	pval_null_zscore[[i]] <- temp[1,]
-	Ds[[i]] <- temp[2,]
-	means[[i]] <- temp[3,]
-	sds[[i]] <- temp[4,]
-	Zs[[i]] <- temp[5,]
-}
-pval_null_zscore <- unlist(pval_null_zscore)
-means <- unlist(means)
-sds <- unlist(sds)
-Ds <- unlist(Ds)
-Zs <- unlist(Zs)
-rm(i)
-rm(temp)
-summary(pval_null_zscore <= 0.05)
