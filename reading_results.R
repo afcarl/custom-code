@@ -76,10 +76,18 @@ rm(temp)
 
 # read x-val data
 
-Zs <- matrix(nrow=17728,ncol=7)
+Zs <- matrix(nrow=17728,ncol=14)
 mlogliks <- NULL
 for (i in 1:17728) {
 	Zs[i,] <- t(read.table(paste("./",i,".result",sep=""),nrow=1,skip=0))
 	mlogliks[[i]] <- read.table(paste("./",i,".result",sep=""),skip=1,header=TRUE)
+}
+rm(i)
+
+
+targets <- read.delim("commandfile_predictions.txt",header=F)
+mlogliks <- NULL
+for (i in 1:100) {
+	mlogliks[[i]] <- read.table(paste("./",targets[i,2],".predicted",sep=""),header=TRUE)
 }
 rm(i)

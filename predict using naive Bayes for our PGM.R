@@ -1,6 +1,6 @@
 #ids <- results_all[sort(rank(-results_all$Zs_2way),index.return=TRUE)$ix[1:20],10]
 ids <- c(1657,9059,9227,11795,16267,9007,16764,1596,8298,7642,6508,12925,9878,11222,14399,14831,10755,12523,12127,9791)
-#ids <- c(1657,9059,9227,11795,16267,9007,16764,1596,8298,7642,6508,12925,9878,11222,14399,14831,10755,12523,12127,9791,7008,7315,14194,10326,16765,1347,8782,17517,5436,14587,7127,13998,15288,13992,15753,15745,2700,6256,15321,12086,5314,1880,10766,1943,10574,11869,7433,9106,10323,1308,8765,8145,12292,7662,7990,12187,9045,10850,6509,6695,7773,9009,12494,4826,17066,7926,1305,609,14921,5283,16303,4268,5209,13877,1514,4431,11379,12890,2386,4310,1793,10666,14530,16471,17037,6374,14770,7475,9442,11587,6859,11085,1878,9380,8998,10948,15304,5135,3677,10692)
+
 # read predictions from files produced by 2way_predict.R
 predictions <- NULL
 for (i in 1:length(ids)) {
@@ -11,32 +11,34 @@ save(predictions,file="predictions_BRCA.RData")
 
 library(Brobdingnag)
 library(pROC)
-performances_PGM <- matrix(ncol=6,nrow=20)
+G1_pred <- G1[56:82]
+G2_pred <- G2[487:730]
+
+performances_PGM <- matrix(ncol=6,nrow=100)
 colnames(performances_PGM) <- c("sensitivity","specificity","AUC","runningNaiveBayes_sen","runningNaiveBayes_spe","AUC")
+prod_loglik_g1_g1 <- rep(1,length(G1_pred))
+prod_loglik_g1_g2 <- rep(1,length(G1_pred))
+prod_loglik_g2_g1 <- rep(1,length(G2_pred))
+prod_loglik_g2_g2 <- rep(1,length(G2_pred))
 
-prod_loglik_an_an <- rep(1,length(ANs_toPredict))
-prod_loglik_an_t <- rep(1,length(ANs_toPredict))
-
-prod_loglik_t_an <- rep(1,length(Ts_toPredict))
-prod_loglik_t_t <- rep(1,length(Ts_toPredict))
-
-for (i in 1:length(predictions)) {
-	performances_PGM[i,1] <- length(which(predictions[[i]][Ts_toPredict,2] >= 0.5))/length(Ts_toPredict)
-	performances_PGM[i,2] <- length(which(predictions[[i]][ANs_toPredict,2] < 0.5))/length(ANs_toPredict)
+for (i in 1:length(mlogliks)) {
+	rownames(mlogliks[[i]]) <- mlogliks[[i]][,1]
+	performances_PGM[i,2] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G1_pred,4]) < 0.5))/length(G1_pred)
+	performances_PGM[i,1] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G2_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G2_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G2_pred,4]) >= 0.5))/length(G2_pred)
 	
-	performances_PGM[i,3] <- auc(predictor=c(predictions[[i]][Ts_toPredict,2],predictions[[i]][ANs_toPredict,2]),response=c(rep("Pos",length(Ts_toPredict)),rep("Neg",length(ANs_toPredict))))
+	performances_PGM[i,3] <- auc(predictor=as.double(as.brob(exp(1))^-mlogliks[[i]][,3] / (as.brob(exp(1))^-mlogliks[[i]][,3] + as.brob(exp(1))^-mlogliks[[i]][,4])),response=c(rep("Pos",length(G1_pred)),rep("Neg",length(G2_pred))))
 	
 	# naive Bayes combination of results
-	prod_loglik_t_t <- prod_loglik_t_t * as.brob(exp(-predictions[[i]][Ts_toPredict,3]))
-	prod_loglik_t_an <- prod_loglik_t_an * as.brob(exp(-predictions[[i]][Ts_toPredict,4]))
+	prod_loglik_g2_g2 <- prod_loglik_g2_g2 * as.brob(exp(-mlogliks[[i]][G2_pred,3]))
+	prod_loglik_g2_g1 <- prod_loglik_g2_g1 * as.brob(exp(-mlogliks[[i]][G2_pred,4]))
 	
-	prod_loglik_an_an <- prod_loglik_an_an * as.brob(exp(-predictions[[i]][ANs_toPredict,4]))
-	prod_loglik_an_t <- prod_loglik_an_t * as.brob(exp(-predictions[[i]][ANs_toPredict,3]))
+	prod_loglik_g1_g1 <- prod_loglik_g1_g1 * as.brob(exp(-mlogliks[[i]][G1_pred,4]))
+	prod_loglik_g1_g2 <- prod_loglik_g1_g2 * as.brob(exp(-mlogliks[[i]][G1_pred,3]))
 	
-	performances_PGM[i,5] <- length(which(as.double(prod_loglik_an_t / (prod_loglik_an_t+prod_loglik_an_an)) < 0.5))/length(ANs_toPredict)
-	performances_PGM[i,4] <- length(which(as.double(prod_loglik_t_t / (prod_loglik_t_t+prod_loglik_t_an)) >= 0.5))/length(Ts_toPredict)
+	performances_PGM[i,5] <- length(which(as.double(prod_loglik_g1_g2 / (prod_loglik_g1_g2+prod_loglik_g1_g1)) < 0.5))/length(G1_pred)
+	performances_PGM[i,4] <- length(which(as.double(prod_loglik_g2_g2 / (prod_loglik_g2_g2+prod_loglik_g2_g1)) >= 0.5))/length(G2_pred)
 	
-	performances_PGM[i,6] <- auc(predictor=c(as.double(prod_loglik_t_t / (prod_loglik_t_t+prod_loglik_t_an)),as.double(prod_loglik_an_t / (prod_loglik_an_t+prod_loglik_an_an))),response=c(rep("Pos",length(Ts_toPredict)),rep("Neg",length(ANs_toPredict))))
+	performances_PGM[i,6] <- auc(predictor=c(as.double(prod_loglik_g2_g2 / (prod_loglik_g2_g2+prod_loglik_g2_g1)),as.double(prod_loglik_g1_g2 / (prod_loglik_g1_g2+prod_loglik_g1_g1))),response=c(rep("Pos",length(G2_pred)),rep("Neg",length(G1_pred))))
 }
 
 

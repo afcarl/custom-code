@@ -5,7 +5,7 @@ sed -i 's/gene_id\traw_count\tscaled_estimate\ttranscript_id/HUGO\tgene_id\traw_
 R
 
 require(plyr)
-data <- lapply(dir(), read.table, col.names=c("HUGO","gene_id","raw_count","scaled_estimate","transcript_id"), na.strings="-999.00")
+data <- lapply(dir(), read.table, col.names=c("HUGO","gene_id","raw_count","scaled_estimate","transcript_id"), na.strings="-999.00",strings.as.factors=FALSE)
 counts <- as.data.frame(matrix(nrow = length(data[[1]][,1])-30, ncol = length(data)+1))
 colnames(counts) <- c("HUGO",substring(dir(),9,52))
 counts[,1] <- as.character(data[[i]][-seq(1,30),1])
@@ -17,6 +17,7 @@ counts[,1+i] <- as.data.frame(data[[i]][-seq(1,30),3])
 counts[16272,1] <- "SLC35E2B"
 rownames(counts) <- counts[,1]
 counts <- counts[,-1]
+
 
 maping <- read.delim("D:/TCGA PRAD/FILE_SAMPLE_MAP.txt")
 maping <- maping[-(1:670),]
@@ -53,81 +54,12 @@ setwd("D:/TCGA PRAD/DNA_Methylation/JHU_USC__HumanMethylation450/Level_1")
 targets <- read.450k.sheet(base=getwd())
 RGset <- read.450k.exp(getwd(),targets)
 MSet.raw <- preprocessRaw(RGset)
-bmatrix <- getBeta(MSet.raw)
-save(bmatrix,targets,file="PRAD.450k.RData")
 
-# on local machine (IMA won't work on linux machine)
-load("PRAD.450k.RData")
-require(IMA)
-detectP <- matrix(nrow=nrow(bmatrix),ncol=ncol(bmatrix),0.01)
-setClass("exprmethy450", representation(bmatrix = "matrix", annot = "matrix", detectP = "matrix", groupinfo = "data.frame"), where = topenv(parent.frame()))
-data = new("exprmethy450", bmatrix = as.matrix(bmatrix), annot = as.matrix(annot), detectP = as.matrix(detectP), groupinfo = targets[,c(1,4)])
-dataf <- IMA.methy450PP(data,na.omit=TRUE,peakcorrection=TRUE,normalization=FALSE, transfm=FALSE,samplefilterdetectP=FALSE,sitefilterdetectP=FALSE,locidiff=FALSE,XYchrom=FALSE,snpfilter=FALSE)
-site_res <- sitetest2(beta=dataf@bmatrix,group=dataf@groupinfo,gcontrol="AN",gcase="T",testmethod="limma",Padj="BH")
-site_res_bmatrix <- sitetest2(beta=data@bmatrix,group=dataf@groupinfo,gcontrol="AN",gcase="T",testmethod="limma",Padj="BH")
-site_res <- sitetest2(beta=dataf@bmatrix,group=dataf@groupinfo,gcontrol="AN",gcase="T",testmethod="limma",Padj="BH")
-out <- cbind(site_res[,1:2],site_res_bmatrix[rownames(site_res),3:5],data@annot[rownames(site_res),c(22,24,12,13,25,26)],round(data@bmatrix,digits=3)[rownames(site_res),]
-write.table(out,col.names=TRUE,row.names=TRUE,sep="\t",file="PRAD_450k.tab")
-
-# manual peak-correction
-#orignalrownm = rownames(bmatrix)
-#bmatrix_pc = na.omit(bmatrix)
-#temp = orignalrownm %in% rownames(bmatrix_pc)
-#load("./fullannotInd.rda")
-#fullannot <- fullannot[rownames(bmatrix),]
-#annotation = fullannot[temp, ]
-#temp = nrow(bmatrix) - nrow(bmatrix_pc)
-#cat(temp, "sites contain missing value and are removed\n")
+mmatrix <- mmatrix <- log2((getMeth(MSet.raw)+1) / (getUnmeth(MSet.raw)+1))
+bmatrix <- M2Beta(mmatrix)
 bmatrix_pc <- peak.correction(bmatrix,fullannot)
 mmatrix_pc <- Beta2M(bmatrix_pc)
 
-
-############################################################
-# extract probe indexes from annotation file:
-annot = annotation
-    name = "UCSC_REFGENE_NAME"
-    cpGsite = as.character(annot[, 1])
-    genelist = strsplit(as.character(annot[, name]), ";")
-    genelist[which(genelist == "character(0)")] = "NA"
-    name = "UCSC_REFGENE_GROUP"
-    refgene = strsplit(as.character(annot[, name]), ";")
-    refgene[which(refgene == "character(0)")] = "NA"
-    listlength = lapply(refgene, length)
-    listlength[listlength == 0] = 1
-    col0 = rep(1:nrow(annot), listlength)
-    col1 = rep(cpGsite, listlength)
-    col2 = unlist(genelist)
-    col3 = unlist(refgene)
-    col4 = rep(as.character(annotation[, "RELATION_TO_UCSC_CPG_ISLAND"]), 
-        listlength)
-    col5 = rep(as.character(annotation[, "UCSC_CPG_ISLANDS_NAME"]), 
-        listlength)
-    splitToRegionlist = function(grepname = c("TSS1500", "TSS200", 
-        "5'UTR", "1stExon", "Gene Body", "3'UTR")) {
-        index = col3 == grepname
-        col1sub = col1[index]
-        col2sub = col2[index]
-        temp = split(col1sub, col2sub)
-        returnSID = lapply(temp, unique)
-        col0sub = col0[index]
-        temp = split(col0sub, col2sub)
-        returnPID = lapply(temp, unique)
-        return(Ind = list(SID = returnSID, PID = returnPID))
-    }
-    TSS1500Ind = splitToRegionlist(grepname = "TSS1500")
-    TSS200Ind = splitToRegionlist(grepname = "TSS200")
-    UTR5Ind = splitToRegionlist(grepname = "5'UTR")
-    EXON1Ind = splitToRegionlist(grepname = "1stExon")
-    GENEBODYInd = splitToRegionlist(grepname = "Body")
-    UTR3Ind = splitToRegionlist(grepname = "3'UTR")
-    cat("TSS1500 region contains:", length(TSS1500Ind$SID), 
-        "UCSC REFGENE region \nTSS200 region contains:", length(TSS200Ind$SID), 
-        "UCSC REFGENE region\n5'UTR region contains:", length(UTR5Ind$SID), 
-        "UCSC REFGENE region\n1st Exon region contains:", length(EXON1Ind$SID), 
-        "UCSC REFGENE region\nGene body region contains:", length(GENEBODYInd$SID), 
-        "UCSC REFGENE region\n3'UTR region contains:", length(UTR3Ind$SID), 
-        "UCSC REFGENE region\n")
-		
 #############################################################
 # R functions required for peak-correction
 peak.correction <- function (data, anno) 
@@ -189,3 +121,52 @@ Beta2M <- function (B)
 {
 	return(log2(B/(1 - B)))
 }
+
+
+############################################################
+# manual recreation of the fullannot table, if the annotation is provided
+# extract probe indexes from annotation file:
+annot = annotation
+    name = "UCSC_REFGENE_NAME"
+    cpGsite = as.character(annot[, 1])
+    genelist = strsplit(as.character(annot[, name]), ";")
+    genelist[which(genelist == "character(0)")] = "NA"
+    name = "UCSC_REFGENE_GROUP"
+    refgene = strsplit(as.character(annot[, name]), ";")
+    refgene[which(refgene == "character(0)")] = "NA"
+    listlength = lapply(refgene, length)
+    listlength[listlength == 0] = 1
+    col0 = rep(1:nrow(annot), listlength)
+    col1 = rep(cpGsite, listlength)
+    col2 = unlist(genelist)
+    col3 = unlist(refgene)
+    col4 = rep(as.character(annotation[, "RELATION_TO_UCSC_CPG_ISLAND"]), 
+        listlength)
+    col5 = rep(as.character(annotation[, "UCSC_CPG_ISLANDS_NAME"]), 
+        listlength)
+    splitToRegionlist = function(grepname = c("TSS1500", "TSS200", 
+        "5'UTR", "1stExon", "Gene Body", "3'UTR")) {
+        index = col3 == grepname
+        col1sub = col1[index]
+        col2sub = col2[index]
+        temp = split(col1sub, col2sub)
+        returnSID = lapply(temp, unique)
+        col0sub = col0[index]
+        temp = split(col0sub, col2sub)
+        returnPID = lapply(temp, unique)
+        return(Ind = list(SID = returnSID, PID = returnPID))
+    }
+    TSS1500Ind = splitToRegionlist(grepname = "TSS1500")
+    TSS200Ind = splitToRegionlist(grepname = "TSS200")
+    UTR5Ind = splitToRegionlist(grepname = "5'UTR")
+    EXON1Ind = splitToRegionlist(grepname = "1stExon")
+    GENEBODYInd = splitToRegionlist(grepname = "Body")
+    UTR3Ind = splitToRegionlist(grepname = "3'UTR")
+    cat("TSS1500 region contains:", length(TSS1500Ind$SID), 
+        "UCSC REFGENE region \nTSS200 region contains:", length(TSS200Ind$SID), 
+        "UCSC REFGENE region\n5'UTR region contains:", length(UTR5Ind$SID), 
+        "UCSC REFGENE region\n1st Exon region contains:", length(EXON1Ind$SID), 
+        "UCSC REFGENE region\nGene body region contains:", length(GENEBODYInd$SID), 
+        "UCSC REFGENE region\n3'UTR region contains:", length(UTR3Ind$SID), 
+        "UCSC REFGENE region\n")
+		
