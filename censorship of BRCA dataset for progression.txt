@@ -228,13 +228,16 @@ for (fold in 0:13) {
 	}
 }
 
-performances_binomial_fullCV_top103var <- matrix(ncol=3,nrow=10)
-colnames(performances_binomial_fullCV_top103var) <- c("sensitivity","specificity","AUC")
+performances_binomial_fullCV_top103var <- matrix(ncol=6,nrow=10)
+colnames(performances_binomial_fullCV_top103var) <- c("sensitivity","specificity","AUC","sensitivity_r","specificity_r","AUC_r")
 
 for (i in 1:10) {
 	performances_binomial_fullCV_top103var[i,1] <- length(which(indiv_predictions_cv[i,1:length(G1)] < 0.5))/length(G1)
 	performances_binomial_fullCV_top103var[i,2] <- length(which(indiv_predictions_cv[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
 	performances_binomial_fullCV_top103var[i,3] <- auc(predictor=indiv_predictions_cv[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+	performances_binomial_fullCV_top103var[i,4] <- length(which(indiv_predictions_cv_r[i,1:length(G1)] < 0.5))/length(G1)
+	performances_binomial_fullCV_top103var[i,5] <- length(which(indiv_predictions_cv_r[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
+	performances_binomial_fullCV_top103var[i,6] <- auc(predictor=indiv_predictions_cv_r[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
 }
 
 performances_binomial_fullCV_top103var_i <- matrix(ncol=3,nrow=10)
