@@ -23,9 +23,8 @@ prod_loglik_g2_g2 <- rep(1,length(G2_pred))
 
 for (i in 1:length(mlogliks)) {
 	rownames(mlogliks[[i]]) <- mlogliks[[i]][,1]
-	performances_PGM[i,2] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G1_pred,4]) < 0.5))/length(G1_pred)
 	performances_PGM[i,1] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G2_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G2_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G2_pred,4]) >= 0.5))/length(G2_pred)
-	
+	performances_PGM[i,2] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G1_pred,4]) < 0.5))/length(G1_pred)
 	performances_PGM[i,3] <- auc(predictor=as.double(as.brob(exp(1))^-mlogliks[[i]][,3] / (as.brob(exp(1))^-mlogliks[[i]][,3] + as.brob(exp(1))^-mlogliks[[i]][,4])),response=c(rep("Pos",length(G1_pred)),rep("Neg",length(G2_pred))))
 	
 	# naive Bayes combination of results
@@ -39,6 +38,22 @@ for (i in 1:length(mlogliks)) {
 	performances_PGM[i,4] <- length(which(as.double(prod_loglik_g2_g2 / (prod_loglik_g2_g2+prod_loglik_g2_g1)) >= 0.5))/length(G2_pred)
 	
 	performances_PGM[i,6] <- auc(predictor=c(as.double(prod_loglik_g2_g2 / (prod_loglik_g2_g2+prod_loglik_g2_g1)),as.double(prod_loglik_g1_g2 / (prod_loglik_g1_g2+prod_loglik_g1_g1))),response=c(rep("Pos",length(G2_pred)),rep("Neg",length(G1_pred))))
+}
+
+# combine selected top candidates for ROC plotting
+prod_loglik_g1_g1 <- rep(1,length(G1_pred))
+prod_loglik_g1_g2 <- rep(1,length(G1_pred))
+prod_loglik_g2_g1 <- rep(1,length(G2_pred))
+prod_loglik_g2_g2 <- rep(1,length(G2_pred))
+
+for (i in 1:16) {
+	
+	# naive Bayes combination of results
+	prod_loglik_g2_g2 <- prod_loglik_g2_g2 * as.brob(exp(-mlogliks[[i]][G2_pred,3]))
+	prod_loglik_g2_g1 <- prod_loglik_g2_g1 * as.brob(exp(-mlogliks[[i]][G2_pred,4]))
+	
+	prod_loglik_g1_g1 <- prod_loglik_g1_g1 * as.brob(exp(-mlogliks[[i]][G1_pred,4]))
+	prod_loglik_g1_g2 <- prod_loglik_g1_g2 * as.brob(exp(-mlogliks[[i]][G1_pred,3]))
 }
 
 

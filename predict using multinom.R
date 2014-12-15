@@ -20,26 +20,48 @@ for (i in 1:length(top20)) {
 }
 
 # using glm's binomial
-performances_binomial <- matrix(ncol=3,nrow=20)
-colnames(performances_binomial) <- c("sensitivity","specificity","AUC")
+performances_binomial <- matrix(ncol=6,nrow=nrow(top100))
+colnames(performances_binomial) <- c("sensitivity","specificity","AUC","sensitivity_comb","specificity_comb","AUC_comb")
+
+G1_pred <- G1[-sample_G1]
+G2_pred <- G2[-sample_G2]
+G1_train <- G1[sample_G1]
+G2_train <- G2[sample_G1]
+
 models <- NULL
-for (i in 1:length(top20)) {
-	df_train <- data.frame(promoter_meth = mmatrix_BRCA_PROMOTER_top20_train[top20[i],c(ANs,Ts)], gb_meth = mmatrix_BRCA_BODY_top20_train[top20[i],c(ANs,Ts)], expression = t(cpm_BRCA_top20_train[top20[i],c(ANs,Ts)]), class=c(rep("AN",length(ANs)),rep("T",length(Ts))))
-	df_predict <- data.frame(promoter_meth = mmatrix_BRCA_PROMOTER_top20_predict[top20[i],c(ANs_toPredict,Ts_toPredict)], gb_meth = mmatrix_BRCA_BODY_top20_predict[top20[i],c(ANs_toPredict,Ts_toPredict)], expression = t(cpm_BRCA_top20_predict[top20[i],c(ANs_toPredict,Ts_toPredict)]), class=c(rep("AN",length(ANs_toPredict)),rep("T",length(Ts_toPredict))))
+models_comb <- NULL
+dfs_train <- data.frame(class=c(rep("AN",length(G1_train)),rep("T",length(G2_train))))
+rownames(dfs_train) <- c(G1_train,G2_train)
+dfs_predict <- data.frame(class=c(rep("AN",length(G1_pred)),rep("T",length(G2_pred))))
+rownames(dfs_predict) <- c(G1_pred,G2_pred)
+for (i in 1:nrow(top100)) {
+	cand <- as.character(top100[i,1])
+	df_train <- data.frame(promoter_meth = mmatrix_BRCA_PROMOTER[cand,c(G1_train,G2_train)], gb_meth = mmatrix_BRCA_BODY[cand,c(G1_train,G2_train)], expression = t(cpm_plusOne[cand,c(G1_train,G2_train)]), class=c(rep("AN",length(G1_train)),rep("T",length(G2_train))))
+	df_predict <- data.frame(promoter_meth = mmatrix_BRCA_PROMOTER[cand,c(G1_pred,G2_pred)], gb_meth = mmatrix_BRCA_BODY[cand,c(G1_pred,G2_pred)], expression = t(cpm_plusOne[cand,c(G1_pred,G2_pred)]), class=c(rep("AN",length(G1_pred)),rep("T",length(G2_pred))))
 	colnames(df_predict)[3] <- "expression"
 	colnames(df_train)[3] <- "expression"
 	
 	# independent model
 	models[[i]] <- glm(class ~ promoter_meth + gb_meth + expression, data=df_train,family="binomial")
-	# interaction terms model
-	#models[[i]] <- glm(class ~ promoter_meth * expression + gb_meth * expression, data=df_train,family="binomial")
 	
-	predictions_t <- predict(models[[i]],df_predict[Ts_toPredict,],"response")
-	predictions_an <- predict(models[[i]],df_predict[ANs_toPredict,],"response")
+	predictions_g2 <- predict(models[[i]],df_predict[G2_pred,],"response")
+	predictions_g1 <- predict(models[[i]],df_predict[G1_pred,],"response")
 	
-	performances_binomial[i,1] <- length(which(predictions_t >= 0.5))/length(Ts_toPredict)
-	performances_binomial[i,2] <- length(which(predictions_an < 0.5))/length(ANs_toPredict)
-	performances_binomial[i,3] <- auc(predictor=c(predictions_t,predictions_an),response=c(rep("Pos",length(Ts_toPredict)),rep("Neg",length(ANs_toPredict))))
+	performances_binomial[i,1] <- length(which(predictions_g2 >= 0.5))/length(G2_pred)
+	performances_binomial[i,2] <- length(which(predictions_g1 < 0.5))/length(G1_pred)
+	performances_binomial[i,3] <- auc(predictor=c(predictions_g2,predictions_g1),response=c(rep("Pos",length(G2_pred)),rep("Neg",length(G1_pred))))
+	
+	# combined models
+	colnames(df_train)[1:3] <- paste(colnames(df_train)[1:3],"_",i,sep="")
+	colnames(df_predict)[1:3] <- paste(colnames(df_predict)[1:3],"_",i,sep="")
+	dfs_train <- cbind(dfs_train,df_train[,1:3])
+	dfs_predict <- cbind(dfs_predict,df_predict[,1:3])
+	models_comb[[i]] <- glm(as.formula(paste(c("class ~ ",paste(colnames(dfs_predict[,-1]),collapse=" + ")),collapse="")), data=dfs_train,family="binomial")
+	predictions_g2_comb <- predict(models_comb[[i]],dfs_predict[G2_pred,],"response")
+	predictions_g1_comb <- predict(models_comb[[i]],dfs_predict[G1_pred,],"response")
+	performances_binomial[i,4] <- length(which(predictions_g2_comb >= 0.5))/length(G2_pred)
+	performances_binomial[i,5] <- length(which(predictions_g1_comb < 0.5))/length(G1_pred)
+	performances_binomial[i,6] <- auc(predictor=c(predictions_g2_comb,predictions_g1_comb),response=c(rep("Pos",length(G2_pred)),rep("Neg",length(G1_pred))))
 }
 
 
