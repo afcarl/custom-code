@@ -250,3 +250,51 @@ for (i in 1:10) {
 }
 
 
+# build logistic regression models using PGM-found genes at each fold
+
+indiv_predictions_pgmBased_cv <- matrix(ncol=71,nrow=10)
+colnames(indiv_predictions_pgmBased_cv) <- c(G1,G2)
+indiv_predictions_pgmBased_cv_r <- matrix(ncol=71,nrow=10)
+colnames(indiv_predictions_pgmBased_cv_r) <- c(G1,G2)
+
+for (fold in 0:13) {
+	index_G1_fold <- (fold+1):(fold+1)
+	index_G2_fold <- (fold*4+1):((fold+1)*4)
+	if (fold == 13) index_G2_fold <- c(index_G2_fold,57)
+	current <- top20_genes_perFold_14[1:10,fold+1]
+	temp_train <- as.data.frame(t(cpm_BRCA[current,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
+	temp_train <- cbind(temp_train,as.data.frame(t(mmatrix_BRCA_PROMOTER_noncap[current,c(G1[-index_G1_fold],G2[-index_G2_fold])])))
+	temp_train <- cbind(temp_train,as.data.frame(t(mmatrix_BRCA_BODY_noncap[current,c(G1[-index_G1_fold],G2[-index_G2_fold])])))
+	colnames(temp_train)[1:10] <- paste(colnames(temp_train)[1:10],"_E",sep="")
+	colnames(temp_train)[11:20] <- paste(colnames(temp_train)[11:20],"_PR",sep="")
+	colnames(temp_train)[21:30] <- paste(colnames(temp_train)[21:30],"_GB",sep="")
+	temp_train$class <- factor(c(rep("G1",length(G1[-index_G1_fold])),rep("G2",length(G2[-index_G2_fold]))))
+	
+	temp_eval <- as.data.frame(t(cpm_BRCA[current,c(G1[index_G1_fold],G2[index_G2_fold])]))
+	temp_eval <- cbind(temp_eval,as.data.frame(t(mmatrix_BRCA_PROMOTER_noncap[current,c(G1[index_G1_fold],G2[index_G2_fold])])))
+	temp_eval <- cbind(temp_eval,as.data.frame(t(mmatrix_BRCA_BODY_noncap[current,c(G1[index_G1_fold],G2[index_G2_fold])])))
+	colnames(temp_eval)[1:10] <- paste(colnames(temp_eval)[1:10],"_E",sep="")
+	colnames(temp_eval)[11:20] <- paste(colnames(temp_eval)[11:20],"_PR",sep="")
+	colnames(temp_eval)[21:30] <- paste(colnames(temp_eval)[21:30],"_GB",sep="")
+	temp_eval$class <- factor(c(rep("G1",length(G1[index_G1_fold])),rep("G2",length(G2[index_G2_fold]))))
+	
+	for (i in 1:10) {
+		model <- glm(as.formula(paste("class ~ ",paste(paste(current[i],"_E",sep=""),paste(current[i],"_PR",sep=""),paste(current[i],"_GB",sep=""),sep=" + "))), data=temp_train, family="binomial")
+		indiv_predictions_pgmBased_cv[i,c(G1[index_G1_fold],G2[index_G2_fold])] <- predict(model,temp_eval,type="response")
+		
+		model <- glm(as.formula(paste("class ~ ",paste(paste(current[1:i],"_E",sep="", collapse=" + "), paste(current[1:i],"_PR",sep="", collapse=" + "), paste(current[1:i],"_GB",sep="", collapse=" + "),sep=" + "))), data=temp_train, family="binomial")
+		indiv_predictions_pgmBased_cv_r[i,c(G1[index_G1_fold],G2[index_G2_fold])] <- predict(model,temp_eval,type="response")
+	}
+}
+
+performances_pgmBased_LR_cv <- matrix(ncol=6,nrow=10)
+colnames(performances_pgmBased_LR_cv) <- c("sensitivity","specificity","AUC","sensitivity_r","specificity_r","AUC_r")
+
+for (i in 1:10) {
+	performances_pgmBased_LR_cv[i,1] <- length(which(indiv_predictions_pgmBased_cv[i,1:length(G1)] < 0.5))/length(G1)
+	performances_pgmBased_LR_cv[i,2] <- length(which(indiv_predictions_pgmBased_cv[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
+	performances_pgmBased_LR_cv[i,3] <- auc(predictor=indiv_predictions_pgmBased_cv[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+	performances_pgmBased_LR_cv[i,4] <- length(which(indiv_predictions_pgmBased_cv_r[i,1:length(G1)] < 0.5))/length(G1)
+	performances_pgmBased_LR_cv[i,5] <- length(which(indiv_predictions_pgmBased_cv_r[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
+	performances_pgmBased_LR_cv[i,6] <- auc(predictor=indiv_predictions_pgmBased_cv_r[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+}
