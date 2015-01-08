@@ -176,6 +176,73 @@ for (i in 1:10) {
 	performances_binomial_fullCV_top10E[i,6] <- auc(predictor=indiv_predictions_cv_r[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
 }
 
+###############################################################
+# methylation only classifiers full 14CV
+library(IMA)
+library(pROC)
+
+indiv_predictions_cv <- matrix(ncol=71,nrow=10)
+colnames(indiv_predictions_cv) <- c(G1,G2)
+indiv_predictions_cv_r <- matrix(ncol=71,nrow=10)
+colnames(indiv_predictions_cv_r) <- c(G1,G2)
+top10genes_xval_M <- matrix(ncol=14,nrow=10)
+for (fold in 0:13) {
+	index_G1_fold <- (fold+1):(fold+1)
+	index_G2_fold <- (fold*4+1):((fold+1)*4)
+	if (fold == 13) index_G2_fold <- c(index_G2_fold,57)
+	
+	temp_res <- as.data.frame(matrix(ncol=3,nrow=2*length(workingList_BRCA)))
+	
+	pr_cv <- sitetest2(mmatrix_BRCA_PROMOTER_noncap[,c(G1[-index_G1_fold],G2[-index_G2_fold])],targets[-c(index_G1_fold,14+index_G2_fold),],gcase="G1",gcontrol = "G2",testmethod = "satterthwaite")
+	temp_res[1:length(workingList_BRCA),] <- cbind(workingList_BRCA,"promoter",pr_cv[,1])
+	gb_cv <- sitetest2(mmatrix_BRCA_BODY_noncap[,c(G1[-index_G1_fold],G2[-index_G2_fold])],targets[-c(index_G1_fold,14+index_G2_fold),],gcase="G1",gcontrol = "G2",testmethod = "satterthwaite")
+	temp_res[(1+length(workingList_BRCA)):(2*length(workingList_BRCA)),] <- cbind(workingList_BRCA,"body",gb_cv[,1])
+	temp_res[,3] <- as.numeric(temp_res[,3])
+	top10_cv <- temp_res[order(temp_res[,3])[1:10],]
+	top10genes_xval_M[,fold+1] <- top10_cv[,1]
+	
+	temp_train <- as.data.frame(matrix(nrow=length(c(G1[-index_G1_fold],G2[-index_G2_fold])),ncol=10))
+	
+	temp_eval <- as.data.frame(matrix(nrow=length(c(G1[index_G1_fold],G2[index_G2_fold])),ncol=10))
+	colnames(temp_train) <- paste("G_",1:10,sep="")
+	colnames(temp_eval) <- paste("G_",1:10,sep="")
+	gene_symbols <- paste("G_",1:10,sep="")
+	for (i in 1:10) {
+		if (top10_cv[i,2] == "promoter") {
+			temp_train[,i] <- mmatrix_BRCA_PROMOTER_noncap[top10_cv[i,1], c(G1[-index_G1_fold], G2[-index_G2_fold])]
+			temp_eval[,i] <- mmatrix_BRCA_PROMOTER_noncap[top10_cv[i,1], c(G1[index_G1_fold], G2[index_G2_fold])]
+		}
+		if (top10_cv[i,2] == "body") {
+			temp_train[,i] <- mmatrix_BRCA_BODY_noncap[top10_cv[i,1], c(G1[-index_G1_fold], G2[-index_G2_fold])]
+			temp_eval[,i] <- mmatrix_BRCA_BODY_noncap[top10_cv[i,1], c(G1[index_G1_fold], G2[index_G2_fold])]
+		}
+	}
+	temp_eval$class <- factor(c(rep("G1",length(G1[index_G1_fold])),rep("G2",length(G2[index_G2_fold]))))
+	temp_train$class <- factor(c(rep("G1",length(G1[-index_G1_fold])),rep("G2",length(G2[-index_G2_fold]))))
+	
+	for (i in 1:10) {
+		model <- glm(as.formula(paste("class ~ ",gene_symbols[i])), data=temp_train, family="binomial")
+		indiv_predictions_cv[i,c(G1[index_G1_fold],G2[index_G2_fold])] <- predict(model,temp_eval,type="response")
+		model <- glm(as.formula(paste("class ~ ", paste(gene_symbols[1:i],collapse=" + "))), data=temp_train, family="binomial")
+		indiv_predictions_cv_r[i,c(G1[index_G1_fold],G2[index_G2_fold])] <- predict(model,temp_eval,type="response")
+	}
+}
+
+performances_binomial_fullCV_top10M <- matrix(ncol=6,nrow=10)
+colnames(performances_binomial_fullCV_top10M) <- c("sensitivity","specificity","AUC","sensitivity_r","specificity_r","AUC_r")
+
+for (i in 1:10) {
+	performances_binomial_fullCV_top10M[i,1] <- length(which(indiv_predictions_cv[i,1:length(G1)] < 0.5))/length(G1)
+	performances_binomial_fullCV_top10M[i,2] <- length(which(indiv_predictions_cv[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
+	performances_binomial_fullCV_top10M[i,3] <- auc(predictor=indiv_predictions_cv[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+	performances_binomial_fullCV_top10M[i,4] <- length(which(indiv_predictions_cv_r[i,1:length(G1)] < 0.5))/length(G1)
+	performances_binomial_fullCV_top10M[i,5] <- length(which(indiv_predictions_cv_r[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
+	performances_binomial_fullCV_top10M[i,6] <- auc(predictor=indiv_predictions_cv_r[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+}
+
+###############################################################
+
+
 # all 3 variables in the model
 indiv_predictions_cv <- matrix(ncol=71,nrow=10)
 colnames(indiv_predictions_cv) <- c(G1,G2)
@@ -298,3 +365,45 @@ for (i in 1:10) {
 	performances_pgmBased_LR_cv[i,5] <- length(which(indiv_predictions_pgmBased_cv_r[i,(1+length(G1)):(length(G1)+length(G2))] >= 0.5))/length(G2)
 	performances_pgmBased_LR_cv[i,6] <- auc(predictor=indiv_predictions_pgmBased_cv_r[i,],response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
 }
+
+require(ggplot2)
+require(pROC)
+require(Brobdingnag)
+# make and plot ROC
+prod_loglik_G1_G2 <- rep(1,length(G1))
+prod_loglik_G1_G1 <- rep(1,length(G1))
+prod_loglik_G2_G2 <- rep(1,length(G2))
+prod_loglik_G2_G1 <- rep(1,length(G2))
+
+for (i in 1:2) {
+	# naive Bayes combination of results
+	prod_loglik_G1_G1 <- prod_loglik_G1_G1 * as.brob(exp(1))^-mlogliks_top20_sorted[[i]][G1,2]
+	prod_loglik_G1_G2 <- prod_loglik_G1_G2 * as.brob(exp(1))^-mlogliks_top20_sorted[[i]][G1,3]
+	
+	prod_loglik_G2_G2 <- prod_loglik_G2_G2 * as.brob(exp(1))^-mlogliks_top20_sorted[[i]][G2,3]
+	prod_loglik_G2_G1 <- prod_loglik_G2_G1 * as.brob(exp(1))^-mlogliks_top20_sorted[[i]][G2,2]
+}
+
+roc_pgm <- roc(cases=as.double(prod_loglik_G2_G2 / (prod_loglik_G2_G2+prod_loglik_G2_G1)), controls=as.double(prod_loglik_G1_G2 / (prod_loglik_G1_G2+prod_loglik_G1_G1)),ci=T)
+roc_logistic <- roc(cases=indiv_predictions_pgmBased_cv_r[2,G1], controls=indiv_predictions_pgmBased_cv_r[2,G2],ci=T)
+roc_logistic_9 <- roc(cases=indiv_predictions_pgmBased_cv_r[9,G1], controls=indiv_predictions_pgmBased_cv_r[9,G2],ci=T)
+
+plotter <- data.frame(
+Sensitivity=c(
+	roc_pgm$sensitivities,
+	roc_logistic$sensitivities,
+	roc_logistic_9$sensitivities),
+Specificity=c(
+	roc_pgm$specificities,
+	roc_logistic$specificities,
+	roc_logistic_9$specificities),
+Model=factor(c(
+	rep("top2 PGMs combined",length(roc_pgm$specificities)),
+	rep("top2 logistic regression combined",length(roc_logistic$specificities)),
+	rep("top9 logistic regression combined",length(roc_logistic_9$specificities))),levels=c("top2 PGMs combined","top2 logistic regression combined","top9 logistic regression combined")))
+
+plot2 <- ggplot(plotter,aes(x=Specificity,y=Sensitivity,colour=Model)) + geom_polygon(alpha=0) + scale_x_reverse() + theme_bw() + theme(legend.position="bottom") + geom_abline(intercept=1,slope=1,size=0.75) + scale_colour_brewer(palette="Set1", labels=paste(c("top2 PGM-combined: AUC=","top2 LR-combined: AUC=","top9 LR-combined: AUC="),c(signif(roc_pgm$auc,4), signif(roc_logistic$auc,4), signif(roc_logistic_9$auc,4))," (", c(capture.output(roc_pgm$ci), capture.output(roc_logistic$ci), capture.output(roc_logistic_9$ci)),")", sep = "")) + ggtitle("ROC plot for progression predictive models") + theme(plot.title = element_text(face="bold", size=14),  axis.title.x = element_text(face="bold", size=12), axis.title.y = element_text(face="bold", size=12, angle=90), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.justification=c(1,0), legend.position=c(1,0), legend.title=element_blank(), legend.key = element_blank(), legend.text = element_text(size=7))
+
+pdf(file="progression ROCs comparison v3.pdf")
+print(plot2)
+dev.off()
