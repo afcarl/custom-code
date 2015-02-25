@@ -98,8 +98,6 @@ for (fold in 0:13) {
 }
 for (i in 1:20) rownames(mlogliks_top20_sorted_14[[i]]) <- mlogliks_top20_sorted_14[[i]][,1]
 
-mlogliks_top20_sorted_7 <- mlogliks_top20_sorted
-
 library(Brobdingnag)
 library(pROC)
 # calculate performances
@@ -146,15 +144,16 @@ for (fold in 0:13) {
 	index_G2_fold <- (fold*4+1):((fold+1)*4)
 	if (fold == 13) index_G2_fold <- c(index_G2_fold,57)
 	
-	y_cv <- DGEList(counts=counts_plusOne[,c(G1[-index_G1_fold],G2[-index_G2_fold])],group=targets$Type[-c(index_G1_fold,14+index_G2_fold)])
-	y_cv <- estimateTagwiseDisp(y_cv)
+	y_cv <- DGEList(counts=counts[,c(G1[-index_G1_fold],G2[-index_G2_fold])],group=targets$Type[-c(index_G1_fold,14+index_G2_fold)])
+	y_cv$samples$lib.size <- factors_ls[c(G1[-index_G1_fold],G2[-index_G2_fold])]*10^6
+	y_cv <- estimateTagwiseDisp(calcNormFactors(y_cv))
 	et_cv <- exactTest(y_cv,dispersion="auto")
 	top10_cv <- rownames(et_cv[order(et_cv$table[,3])[1:10],])
 	top10genes_xval_E[,fold+1] <- top10_cv
 	
-	temp_train <- as.data.frame(t(cpm_BRCA[top10_cv,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
+	temp_train <- as.data.frame(t(cpm[top10_cv,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
 	temp_train$class <- factor(c(rep("G1",length(G1[-index_G1_fold])),rep("G2",length(G2[-index_G2_fold]))))
-	temp_eval <- as.data.frame(t(cpm_BRCA[top10_cv,c(G1[index_G1_fold],G2[index_G2_fold])]))
+	temp_eval <- as.data.frame(t(cpm[top10_cv,c(G1[index_G1_fold],G2[index_G2_fold])]))
 	temp_eval$class <- factor(c(rep("G1",length(G1[index_G1_fold])),rep("G2",length(G2[index_G2_fold]))))
 	for (i in 1:10) {
 		model <- glm(as.formula(paste("class ~ ",top10_cv[i])), data=temp_train, family="binomial")
@@ -254,8 +253,9 @@ for (fold in 0:13) {
 	index_G2_fold <- (fold*4+1):((fold+1)*4)
 	if (fold == 13) index_G2_fold <- c(index_G2_fold,57)
 	
-	y_cv <- DGEList(counts=counts_plusOne[,c(G1[-index_G1_fold],G2[-index_G2_fold])],group=targets$Type[-c(index_G1_fold,14+index_G2_fold)])
-	y_cv <- estimateTagwiseDisp(y_cv)
+	y_cv <- DGEList(counts=counts[,c(G1[-index_G1_fold],G2[-index_G2_fold])],group=targets$Type[-c(index_G1_fold,14+index_G2_fold)])
+	y_cv$samples$lib.size <- factors_ls[c(G1[-index_G1_fold],G2[-index_G2_fold])]*10^6
+	y_cv <- estimateTagwiseDisp(calcNormFactors(y_cv))
 	et_cv <- exactTest(y_cv,dispersion="auto")
 	
 	temp_res <- matrix(ncol=4,nrow=length(workingList_BRCA))
@@ -271,7 +271,7 @@ for (fold in 0:13) {
 	
 	top10_cv <- rownames(temp_res[order(temp_res[,4])[1:10],])
 	top10genes_xval_3var[,fold+1] <- top10_cv
-	temp_train <- as.data.frame(t(cpm_BRCA[top10_cv,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
+	temp_train <- as.data.frame(t(cpm[top10_cv,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
 	temp_train <- cbind(temp_train,as.data.frame(t(mmatrix_BRCA_PROMOTER_noncap[top10_cv,c(G1[-index_G1_fold],G2[-index_G2_fold])])))
 	temp_train <- cbind(temp_train,as.data.frame(t(mmatrix_BRCA_BODY_noncap[top10_cv,c(G1[-index_G1_fold],G2[-index_G2_fold])])))
 	colnames(temp_train)[1:10] <- paste(colnames(temp_train)[1:10],"_E",sep="")
@@ -279,7 +279,7 @@ for (fold in 0:13) {
 	colnames(temp_train)[21:30] <- paste(colnames(temp_train)[21:30],"_GB",sep="")
 	temp_train$class <- factor(c(rep("G1",length(G1[-index_G1_fold])),rep("G2",length(G2[-index_G2_fold]))))
 	
-	temp_eval <- as.data.frame(t(cpm_BRCA[top10_cv,c(G1[index_G1_fold],G2[index_G2_fold])]))
+	temp_eval <- as.data.frame(t(cpm[top10_cv,c(G1[index_G1_fold],G2[index_G2_fold])]))
 	temp_eval <- cbind(temp_eval,as.data.frame(t(mmatrix_BRCA_PROMOTER_noncap[top10_cv,c(G1[index_G1_fold],G2[index_G2_fold])])))
 	temp_eval <- cbind(temp_eval,as.data.frame(t(mmatrix_BRCA_BODY_noncap[top10_cv,c(G1[index_G1_fold],G2[index_G2_fold])])))
 	colnames(temp_eval)[1:10] <- paste(colnames(temp_eval)[1:10],"_E",sep="")
@@ -317,6 +317,7 @@ for (i in 1:10) {
 }
 
 
+top20_genes_perFold_14 <- top20_genes_perFold_14[,-1]
 # build logistic regression models using PGM-found genes at each fold
 
 indiv_predictions_pgmBased_cv <- matrix(ncol=71,nrow=10)
@@ -329,7 +330,7 @@ for (fold in 0:13) {
 	index_G2_fold <- (fold*4+1):((fold+1)*4)
 	if (fold == 13) index_G2_fold <- c(index_G2_fold,57)
 	current <- top20_genes_perFold_14[1:10,fold+1]
-	temp_train <- as.data.frame(t(cpm_BRCA[current,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
+	temp_train <- as.data.frame(t(cpm[current,c(G1[-index_G1_fold],G2[-index_G2_fold])]))
 	temp_train <- cbind(temp_train,as.data.frame(t(mmatrix_BRCA_PROMOTER_noncap[current,c(G1[-index_G1_fold],G2[-index_G2_fold])])))
 	temp_train <- cbind(temp_train,as.data.frame(t(mmatrix_BRCA_BODY_noncap[current,c(G1[-index_G1_fold],G2[-index_G2_fold])])))
 	colnames(temp_train)[1:10] <- paste(colnames(temp_train)[1:10],"_E",sep="")
@@ -337,7 +338,7 @@ for (fold in 0:13) {
 	colnames(temp_train)[21:30] <- paste(colnames(temp_train)[21:30],"_GB",sep="")
 	temp_train$class <- factor(c(rep("G1",length(G1[-index_G1_fold])),rep("G2",length(G2[-index_G2_fold]))))
 	
-	temp_eval <- as.data.frame(t(cpm_BRCA[current,c(G1[index_G1_fold],G2[index_G2_fold])]))
+	temp_eval <- as.data.frame(t(cpm[current,c(G1[index_G1_fold],G2[index_G2_fold])]))
 	temp_eval <- cbind(temp_eval,as.data.frame(t(mmatrix_BRCA_PROMOTER_noncap[current,c(G1[index_G1_fold],G2[index_G2_fold])])))
 	temp_eval <- cbind(temp_eval,as.data.frame(t(mmatrix_BRCA_BODY_noncap[current,c(G1[index_G1_fold],G2[index_G2_fold])])))
 	colnames(temp_eval)[1:10] <- paste(colnames(temp_eval)[1:10],"_E",sep="")

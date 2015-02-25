@@ -5,18 +5,28 @@ sed -i 's/gene_id\traw_count\tscaled_estimate\ttranscript_id/HUGO\tgene_id\traw_
 R
 
 require(plyr)
-data <- lapply(dir(), read.table, col.names=c("HUGO","gene_id","raw_count","scaled_estimate","transcript_id"), na.strings="-999.00",strings.as.factors=FALSE)
+data <- lapply(dir(), read.table, col.names=c("HUGO","gene_id","raw_count","scaled_estimate","transcript_id"), na.strings="-999.00",stringsAsFactors=FALSE)
 counts <- as.data.frame(matrix(nrow = length(data[[1]][,1])-30, ncol = length(data)+1))
 colnames(counts) <- c("HUGO",substring(dir(),9,52))
-counts[,1] <- as.character(data[[i]][-seq(1,30),1])
+counts[,1] <- as.character(data[[1]][-(1:30),1])
 
 for(i in 1:length(data)){
-counts[,1+i] <- as.data.frame(data[[i]][-seq(1,30),3])
+	counts[,1+i] <- as.numeric(data[[i]][-(1:30),3])
 }
 
 counts[16272,1] <- "SLC35E2B"
 rownames(counts) <- counts[,1]
 counts <- counts[,-1]
+
+scaled <- as.data.frame(matrix(nrow = length(data[[1]][,1])-30, ncol = length(data)+1))
+colnames(scaled) <- c("HUGO",substring(dir(),9,52))
+scaled[,1] <- as.character(data[[1]][-(1:30),1])
+for(i in 1:length(data)){
+	scaled[,1+i] <- as.numeric(data[[i]][-(1:30),4])
+}
+scaled[16272,1] <- "SLC35E2B"
+rownames(scaled) <- scaled[,1]
+scaled <- scaled[,-1]
 
 
 maping <- read.delim("D:/TCGA PRAD/FILE_SAMPLE_MAP.txt")
@@ -24,15 +34,15 @@ maping <- maping[-(1:670),]
 maping[,1] <- substring(maping[,1],9,52)
 maping[,2] <- substring(maping[,2],1,15)
 
-for (i in 2:ncol(counts)) {
+for (i in 1:ncol(counts)) {
 	colnames(counts)[i] <- maping[which(maping[,1]==colnames(counts)[i]),2]
+	colnames(scaled)[i] <- maping[which(maping[,1]==colnames(scaled)[i]),2]
 }
-	counts[,i] <- as.double(levels(counts[,i])[as.double(counts[,i])])
-}
+
 source("D:/TCGA PRAD/sampleNames.R")
 counts <- counts_BRCA_all[,c(ANs,Ts)]
 
-cpm_PRAD_plusOne <- counts_BRCA_all
+cpm_PRAD_plusOne <- counts_PRAD
 for (i in 1:331) cpm_PRAD_plusOne[,i] <- (counts_BRCA_all[,i]+1)/(lib_size[i]/10^6)
 
 require(edgeR)
@@ -55,7 +65,7 @@ targets <- read.450k.sheet(base=getwd())
 RGset <- read.450k.exp(getwd(),targets)
 MSet.raw <- preprocessRaw(RGset)
 
-mmatrix <- mmatrix <- log2((getMeth(MSet.raw)+1) / (getUnmeth(MSet.raw)+1))
+mmatrix <- log2((getMeth(MSet.raw)+1) / (getUnmeth(MSet.raw)+1))
 bmatrix <- M2Beta(mmatrix)
 bmatrix_pc <- peak.correction(bmatrix,fullannot)
 mmatrix_pc <- Beta2M(bmatrix_pc)
@@ -71,16 +81,10 @@ peak.correction <- function (data, anno)
         SI <- summits(B[TI])
         SII <- summits(B[TII])
         BI <- correctI(as.vector(B[TI]), SI, SII)
-		#nas <- which(is.na(as.vector(B[TII])))
-		#non_nas <- which(!is.na(as.vector(B[TII])))
-        #temp <- correctII(as.vector(B[non_nas]), SI, SII)
-		#BII <- B[TII]
-		#BII[non_nas] <- temp
 		BII <- correctII(as.vector(B[TII]), SI, SII)
         return(c(BI, BII))
     })
-    row.names(corrected.data) <- c(row.names(data[TI, ]), row.names(data[TII, 
-        ]))
+    row.names(corrected.data) <- c(row.names(data[TI, ]), row.names(data[TII, ]))
     return(corrected.data)
 }
 correctI <- function (BetaValues, SI, SII) 

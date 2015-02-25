@@ -111,31 +111,32 @@ for (i in 1:length(selected)) {
 # predict using all significant genes in the progression dataset
 library(Brobdingnag)
 library(pROC)
-performances_PGM <- matrix(ncol=6,nrow=length(predictions))
+performances_PGM <- matrix(ncol=6,nrow=length(mlogliks))
 colnames(performances_PGM) <- c("sensitivity","specificity","AUC","runningNaiveBayes_sen","runningNaiveBayes_spe","AUC")
 
-prod_loglik_G1_G2 <- rep(1,length(G1))
-prod_loglik_G1_G1 <- rep(1,length(G1))
+prod_loglik_G1_pred_G2_pred <- rep(1,length(G1_pred))
+prod_loglik_G1_pred_G1_pred <- rep(1,length(G1_pred))
 
-prod_loglik_G2_G2 <- rep(1,length(G2))
-prod_loglik_G2_G1 <- rep(1,length(G2))
+prod_loglik_G2_pred_G2_pred <- rep(1,length(G2_pred))
+prod_loglik_G2_pred_G1_pred <- rep(1,length(G2_pred))
 
-for (i in 1:length(predictions)) {
-	performances_PGM[i,1] <- length(which(as.brob(exp(1))^-predictions[[i]][G1,3] / (as.brob(exp(1))^-predictions[[i]][G1,3] + as.brob(exp(1))^-predictions[[i]][G1,4]) >= 0.5))/length(G1)
-	performances_PGM[i,2] <- length(which(as.brob(exp(1))^-predictions[[i]][G2,3] / (as.brob(exp(1))^-predictions[[i]][G2,3] + as.brob(exp(1))^-predictions[[i]][G2,4]) < 0.5))/length(G2)
+for (i in 1:length(mlogliks)) {
+	rownames(mlogliks[[i]]) <- mlogliks[[i]][,1]
+	performances_PGM[i,1] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G1_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G1_pred,4]) >= 0.5))/length(G1_pred)
+	performances_PGM[i,2] <- length(which(as.brob(exp(1))^-mlogliks[[i]][G2_pred,3] / (as.brob(exp(1))^-mlogliks[[i]][G2_pred,3] + as.brob(exp(1))^-mlogliks[[i]][G2_pred,4]) < 0.5))/length(G2_pred)
 	
-	performances_PGM[i,3] <- auc(predictor=as.double(as.brob(exp(1))^-predictions[[i]][,3] / (as.brob(exp(1))^-predictions[[i]][,3] + as.brob(exp(1))^-predictions[[i]][,4])),response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+	performances_PGM[i,3] <- auc(predictor=as.double(as.brob(exp(1))^-mlogliks[[i]][,3] / (as.brob(exp(1))^-mlogliks[[i]][,3] + as.brob(exp(1))^-mlogliks[[i]][,4])),response=c(rep("Pos",length(G1_pred)),rep("Neg",length(G2_pred))))
 	
 	# naive Bayes combination of results
-	prod_loglik_G1_G1 <- prod_loglik_G1_G1 * as.brob(exp(1))^-predictions[[i]][G1,3]
-	prod_loglik_G1_G2 <- prod_loglik_G1_G2 * as.brob(exp(1))^-predictions[[i]][G1,4]
+	prod_loglik_G1_pred_G1_pred <- prod_loglik_G1_pred_G1_pred * as.brob(exp(1))^-mlogliks[[i]][G1_pred,3]
+	prod_loglik_G1_pred_G2_pred <- prod_loglik_G1_pred_G2_pred * as.brob(exp(1))^-mlogliks[[i]][G1_pred,4]
 	
-	prod_loglik_G2_G2 <- prod_loglik_G2_G2 * as.brob(exp(1))^-predictions[[i]][G2,4]
-	prod_loglik_G2_G1 <- prod_loglik_G2_G1 * as.brob(exp(1))^-predictions[[i]][G2,3]
+	prod_loglik_G2_pred_G2_pred <- prod_loglik_G2_pred_G2_pred * as.brob(exp(1))^-mlogliks[[i]][G2_pred,4]
+	prod_loglik_G2_pred_G1_pred <- prod_loglik_G2_pred_G1_pred * as.brob(exp(1))^-mlogliks[[i]][G2_pred,3]
 	
-	performances_PGM[i,4] <- length(which(as.double(prod_loglik_G1_G1 / (prod_loglik_G1_G1+prod_loglik_G1_G2)) >= 0.5))/length(G1)
-	performances_PGM[i,5] <- length(which(as.double(prod_loglik_G2_G1 / (prod_loglik_G2_G1+prod_loglik_G2_G2)) < 0.5))/length(G2)
+	performances_PGM[i,4] <- length(which(as.double(prod_loglik_G1_pred_G1_pred / (prod_loglik_G1_pred_G1_pred+prod_loglik_G1_pred_G2_pred)) >= 0.5))/length(G1_pred)
+	performances_PGM[i,5] <- length(which(as.double(prod_loglik_G2_pred_G1_pred / (prod_loglik_G2_pred_G1_pred+prod_loglik_G2_pred_G2_pred)) < 0.5))/length(G2_pred)
 	
-	performances_PGM[i,6] <- auc(predictor=c(as.double(prod_loglik_G1_G1 / (prod_loglik_G1_G1+prod_loglik_G1_G2)),as.double(prod_loglik_G2_G1 / (prod_loglik_G2_G1+prod_loglik_G2_G2))),response=c(rep("Pos",length(G1)),rep("Neg",length(G2))))
+	performances_PGM[i,6] <- auc(predictor=c(as.double(prod_loglik_G1_pred_G1_pred / (prod_loglik_G1_pred_G1_pred+prod_loglik_G1_pred_G2_pred)),as.double(prod_loglik_G2_pred_G1_pred / (prod_loglik_G2_pred_G1_pred+prod_loglik_G2_pred_G2_pred))),response=c(rep("Pos",length(G1_pred)),rep("Neg",length(G2_pred))))
 }
 

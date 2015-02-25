@@ -14,8 +14,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     # Make the panel
     # ncol: Number of columns of plots
     # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                    ncol = cols, nrow = ceiling(numPlots/cols))
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)), ncol = cols, nrow = ceiling(numPlots/cols))
   }
 
  if (numPlots==1) {
@@ -31,8 +30,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
       # Get the i,j matrix positions of the regions that contain this subplot
       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
 
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row, layout.pos.col = matchidx$col))
     }
   }
 }
@@ -45,11 +43,11 @@ G2_train <- G2[1:487]
 # training data alone
 pdf(file="top100_train.pdf",width=11.7,height=8.27)
 colour_palette <- c("green","red")
-for (i in 1:nrow(top100)) {
-	cand <- as.character(top100[i,1])
+for (i in 1:length(top100)) {
+	cand <- as.character(top100[i])
 	#pdf(file=paste(cand,".pdf",sep=""),width=11.7,height=8.27)
 	
-	temp <- data.frame(PROMOTER = mmatrix_BRCA_PROMOTER[cand,c(G1_train,G2_train)], BODY=mmatrix_BRCA_BODY[cand,c(G1_train,G2_train)], CPM=t(cpm_plusOne[cand,c(G1_train,G2_train)]), sampleType=c(rep("AN",length(G1_train)),rep("T",length(G2_train))))
+	temp <- data.frame(PROMOTER = mmatrix_BRCA_PROMOTER[cand,c(G1_train,G2_train)], BODY=mmatrix_BRCA_BODY[cand,c(G1_train,G2_train)], CPM=t(cpm[cand,c(G1_train,G2_train)]), sampleType=c(rep("AN",length(G1_train)),rep("T",length(G2_train))))
 	colnames(temp)[3] <- "CPM"
 	
 	plot1 <- qplot(temp$sampleType,temp$CPM,geom="boxplot") + theme_bw() + scale_y_log10() +xlab("") +ylab("Expression") + ggtitle(cand)
@@ -117,13 +115,13 @@ for (i in 1:length(top20)) {
 }
 
 
-colour_palette <- c("blue","red")
+colour_palette <- c("orange","red")
+pdf(file="top10_progression.pdf",width=11.7,height=8.27)
 # progression data
 for (i in 1:length(top10)) {
 	cand <- workingList_BRCA[top10[i]]
-	pdf(file=paste(cand,"_progression.pdf",sep=""),width=11.7,height=8.27)
-	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,G1],mmatrix_BRCA_BODY[cand,G1],cpm_BRCA[cand,G1],rep("progresssed",length(G1))))
-	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,G2],mmatrix_BRCA_BODY[cand,G2],cpm_BRCA[cand,G2],rep("nonProgressed",length(G2)))))
+	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,G1],mmatrix_BRCA_BODY[cand,G1],cpm[cand,G1],rep("progresssed",length(G1))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,G2],mmatrix_BRCA_BODY[cand,G2],cpm[cand,G2],rep("nonProgressed",length(G2)))))
 	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
 	temp <- as.data.frame(temp)
 	temp[,1] <- as.numeric.factor(temp[,1])
@@ -138,18 +136,18 @@ for (i in 1:length(top10)) {
 	plot5 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + scale_y_log10() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("Pr. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
 	plot6 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + scale_y_log10() + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("GB. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
 	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
-	dev.off()
 }
-
+dev.off()
 
 # updated raw variables' distributions 
 colour_palette <- c("green4","green4","orangered4","salmon3")
+pdf(file="top10.pdf",width=11.7,height=8.27)
 # progression data
 for (i in 1:10) {
-	cand <- top20[i]
+	cand <- top100[i]
 	pdf(file=paste(cand,"_updated.pdf",sep=""),width=11.7,height=8.27)
-	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,ANs],mmatrix_BRCA_BODY[cand,ANs],cpm_BRCA_plusOne[cand,ANs],rep("Adjacent normal samples",length(ANs))))
-	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,Ts],mmatrix_BRCA_BODY[cand,Ts],cpm_BRCA_plusOne[cand,Ts],rep("Tumours",length(Ts)))))
+	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,ANs],mmatrix_BRCA_BODY[cand,ANs],cpm[cand,ANs],rep("Adjacent normal samples",length(ANs))))
+	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,Ts],mmatrix_BRCA_BODY[cand,Ts],cpm[cand,Ts],rep("Tumours",length(Ts)))))
 	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
 	temp <- as.data.frame(temp)
 	temp[,1] <- as.numeric.factor(temp[,1])
@@ -163,5 +161,5 @@ for (i in 1:10) {
 	plot5 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + scale_y_log10() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("Pr. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
 	plot6 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + scale_y_log10() + theme_bw() + geom_point(alpha=0.75) +ggtitle(cand) + xlab("GB. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
 	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
-	dev.off()
 }
+dev.off()

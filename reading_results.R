@@ -85,6 +85,8 @@ for (i in 1:17728) {
 rm(i)
 
 
+# read predictions
+
 targets <- read.delim("commandfile_predictions.txt",header=F)
 mlogliks <- NULL
 for (i in 1:100) {
