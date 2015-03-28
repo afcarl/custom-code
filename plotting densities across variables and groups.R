@@ -48,3 +48,30 @@ dev.off()
 pdf(file="temp2.pdf",width=12,height=5)
 ggplot(plotter,aes(x=metric,y=density,colour=set)) + geom_line() + theme_bw() + scale_colour_manual(values=cb_palette) + ylab("density across genes") + xlab("M-value") + facet_wrap(facets=~variable) + theme(legend.position="bottom") + xlim(c(-7,7))
 dev.off()
+
+# finding the ratios of distributions
+# Expression
+density_expr_g1 <- density(unlist(cpm[,G1])+1,from=0,to=25,n=2048)
+density_expr_g2 <- density(unlist(cpm[,G2])+1,from=0,to=25,n=2048)
+density_expr_g1$y <- cumsum(density_expr_g1$y)/max(cumsum(density_expr_g1$y))
+density_expr_g2$y <- cumsum(density_expr_g2$y)/max(cumsum(density_expr_g2$y))
+# CPM of 1
+density_expr_g2$y[which(density_expr_g1$x > 1)[1]]/density_expr_g1$y[which(density_expr_g1$x > 1)[1]]
+
+# Promoter
+density_promoter_g1 <- density(unlist(mmatrix_BRCA_PROMOTER[,G1]),from=-7,to=7,n=2048)
+density_promoter_g2 <- density(unlist(mmatrix_BRCA_PROMOTER[,G2]),from=-7,to=7,n=2048)
+density_promoter_g1$y <- cumsum(density_promoter_g1$y)/max(cumsum(density_promoter_g1$y))
+density_promoter_g2$y <- cumsum(density_promoter_g2$y)/max(cumsum(density_promoter_g2$y))
+
+1-density_promoter_g2$y[which(density_promoter_g2$x >= 2)[1]]
+1-density_promoter_g1$y[which(density_promoter_g2$x >= 2)[1]]
+
+# GB
+density_body_g1 <- density(unlist(mmatrix_BRCA_BODY[,G1]),from=-7,to=7,n=2048)
+density_body_g2 <- density(unlist(mmatrix_BRCA_BODY[,G2]),from=-7,to=7,n=2048)
+density_body_g1$y <- cumsum(density_body_g1$y)/max(cumsum(density_body_g1$y))
+density_body_g2$y <- cumsum(density_body_g2$y)/max(cumsum(density_body_g2$y))
+
+1-density_body_g2$y[which(density_body_g2$x >= 2)[1]]
+1-density_body_g1$y[which(density_body_g1$x >= 2)[1]]

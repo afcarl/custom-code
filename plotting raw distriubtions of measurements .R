@@ -117,9 +117,13 @@ for (i in 1:length(top20)) {
 
 colour_palette <- c("orange","red")
 pdf(file="top10_progression.pdf",width=11.7,height=8.27)
+
+colour_palette <- c("orange","red")
+pdf(file="serpins_progression.pdf",width=11.7,height=8.27)
+
 # progression data
-for (i in 1:length(top10)) {
-	cand <- workingList_BRCA[top10[i]]
+for (i in 1:length(serpins)) {
+	cand <- serpins[i]
 	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,G1],mmatrix_BRCA_BODY[cand,G1],cpm[cand,G1],rep("progresssed",length(G1))))
 	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,G2],mmatrix_BRCA_BODY[cand,G2],cpm[cand,G2],rep("nonProgressed",length(G2)))))
 	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")

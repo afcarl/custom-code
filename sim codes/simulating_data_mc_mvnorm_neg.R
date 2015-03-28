@@ -9,7 +9,6 @@ transform <- function(vector,targetMean,targetSd) {
 	return(m2 + (vector-m1) * (s2/s1))
 }
 
-
 read_counts <- 500
 error_m <- 0.14
 error_e <- sqrt(read_counts)

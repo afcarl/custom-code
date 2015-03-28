@@ -91,5 +91,6 @@ targets <- read.delim("commandfile_predictions.txt",header=F)
 mlogliks <- NULL
 for (i in 1:100) {
 	mlogliks[[i]] <- read.table(paste("./",targets[i,2],".predicted",sep=""),header=TRUE)
+	rownames(mlogliks[[i]]) <- mlogliks[[i]][,1]
 }
 rm(i)
