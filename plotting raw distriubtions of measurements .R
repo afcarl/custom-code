@@ -41,22 +41,32 @@ G1_train <- G1[1:55]
 G2_train <- G2[1:487]
 
 # training data alone
-pdf(file="top100_train.pdf",width=11.7,height=8.27)
-colour_palette <- c("green","red")
-for (i in 1:length(top100)) {
-	cand <- as.character(top100[i])
+pdf(file="top10_sota_train.pdf",width=11.7,height=8.27)
+colour_palette <- c("#56B4E9","#D55E00")
+for (i in 1:10) {
+	cand <- as.character(top100_sota[i])
 	#pdf(file=paste(cand,".pdf",sep=""),width=11.7,height=8.27)
 	
 	temp <- data.frame(PROMOTER = mmatrix_BRCA_PROMOTER[cand,c(G1_train,G2_train)], BODY=mmatrix_BRCA_BODY[cand,c(G1_train,G2_train)], CPM=t(cpm[cand,c(G1_train,G2_train)]), sampleType=c(rep("AN",length(G1_train)),rep("T",length(G2_train))))
 	colnames(temp)[3] <- "CPM"
 	
-	plot1 <- qplot(temp$sampleType,temp$CPM,geom="boxplot") + theme_bw() + scale_y_log10() +xlab("") +ylab("Expression") + ggtitle(cand)
-	plot2 <- qplot(temp$sampleType,temp$PROMOTER,geom="boxplot") + theme_bw() +xlab("") +ylab("Pr. meth.") + ggtitle(cand)
-	plot3 <- qplot(temp$sampleType,temp$BODY,geom="boxplot") + theme_bw()+xlab("") +ylab("GB. meth.") + ggtitle(cand)
-	plot4 <- ggplot(temp,aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + geom_point(alpha=0.25) + ggtitle(cand) + xlab("Pr. meth.") + ylab("GB. meth.") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
-	plot5 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + scale_y_log10() + geom_point(alpha=0.25) +ggtitle(cand) + xlab("Pr. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
-	plot6 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + scale_y_log10() + theme_bw() + geom_point(alpha=0.25) +ggtitle(cand) + xlab("GB. meth.") + ylab("Expression") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	plot1 <- qplot(temp$sampleType,temp$CPM,geom="boxplot", colour=temp$sampleType) + theme_bw() + theme(panel.grid=element_line(linetype = 0), legend.position="none", plot.title=element_text(size=10)) + scale_y_log10() +xlab("") +ylab("Expression (reads per million)") + ggtitle(paste(cand,"; p-value=",signif(results_all[cand,1],digits=3),", edgeR",sep="")) + scale_colour_manual(values=colour_palette)
+	plot2 <- qplot(temp$sampleType,temp$PROMOTER,geom="boxplot", colour=temp$sampleType) + theme_bw() + theme(panel.grid=element_line(linetype = 0), legend.position="none", plot.title=element_text(size=10)) +xlab("") +ylab("Pr. meth. (M-value)") + ggtitle(paste(cand,"; p-value=",signif(results_all[cand,2],digits=3),", Welch's t-test",sep="")) + scale_colour_manual(values=colour_palette)
+	plot3 <- qplot(temp$sampleType,temp$BODY,geom="boxplot", colour=temp$sampleType) + theme_bw() + theme(panel.grid=element_line(linetype = 0), legend.position="none", plot.title=element_text(size=10)) +xlab("") +ylab("GB. meth. (M-value)") + ggtitle(paste(cand,"; p-value=",signif(results_all[cand,3],digits=3),", Welch's t-test",sep="")) + scale_colour_manual(values=colour_palette)
+	
+	correlation_an <- signif(cor(temp[G1_train,1], temp[G1_train,2], method="spearman"),digits=2)
+	correlation_t <- signif(cor(temp[G2_train,1], temp[G2_train,2], method="spearman"),digits=2)
+	plot4 <- ggplot(temp,aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + theme(panel.grid=element_line(linetype = 0), plot.title=element_text(size=8)) + geom_point(alpha=0.25) + ggtitle(paste(cand,"; cor(AN's)=", correlation_an,", cor(T's)=", correlation_t,", Spearman's rho",sep="")) + xlab("Pr. meth. (M-value)") + ylab("GB. meth. (M-value)") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	
+	correlation_an <- signif(cor(temp[G1_train,1], temp[G1_train,3], method="spearman"),digits=2)
+	correlation_t <- signif(cor(temp[G2_train,1], temp[G2_train,3], method="spearman"),digits=2)
+	plot5 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + theme(panel.grid=element_line(linetype = 0), plot.title=element_text(size=8)) + scale_y_log10() + geom_point(alpha=0.25) + ggtitle(paste(cand,"; cor(AN's)=", correlation_an,", cor(T's)=", correlation_t,", Spearman's rho",sep="")) + xlab("Pr. meth. (M-value)") + ylab("Expression (reads per million)") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	
+	correlation_an <- signif(cor(temp[G1_train,2], temp[G1_train,3], method="spearman"),digits=2)
+	correlation_t <- signif(cor(temp[G2_train,2], temp[G2_train,3], method="spearman"),digits=2)
+	plot6 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + scale_y_log10() + theme_bw() + theme(panel.grid=element_line(linetype = 0), plot.title=element_text(size=8)) + geom_point(alpha=0.25) + ggtitle(paste(cand,"; cor(AN's)=", correlation_an,", cor(T's)=", correlation_t,", Spearman's rho",sep="")) + xlab("GB. meth. (M-value)") + ylab("Expression (reads per million)") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
 	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
+	#dev.off()
 }
 dev.off()
 
@@ -121,9 +131,12 @@ pdf(file="top10_progression.pdf",width=11.7,height=8.27)
 colour_palette <- c("orange","red")
 pdf(file="serpins_progression.pdf",width=11.7,height=8.27)
 
+colour_palette <- c("orange","red")
+pdf(file="top10_sota_progression.pdf",width=11.7,height=8.27)
+
 # progression data
-for (i in 1:length(serpins)) {
-	cand <- serpins[i]
+for (i in 1:length(top10genes_sota)) {
+	cand <- top10genes_sota[i]
 	temp <- t(rbind(mmatrix_BRCA_PROMOTER[cand,G1],mmatrix_BRCA_BODY[cand,G1],cpm[cand,G1],rep("progresssed",length(G1))))
 	temp <- rbind(temp,t(rbind(mmatrix_BRCA_PROMOTER[cand,G2],mmatrix_BRCA_BODY[cand,G2],cpm[cand,G2],rep("nonProgressed",length(G2)))))
 	colnames(temp) <- c("PROMOTER","BODY","CPM","sampleType")
@@ -142,6 +155,37 @@ for (i in 1:length(serpins)) {
 	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
 }
 dev.off()
+
+# new progression plots
+colour_palette <- c("#CC79A7","#009E73")
+pdf(file="top10_progression.pdf",width=11.7,height=8.27)
+for (i in 1:10) {
+	cand <- as.character(top10[i])
+	
+	temp <- data.frame(PROMOTER = mmatrix_BRCA_PROMOTER[cand,c(G1,G2)], BODY=mmatrix_BRCA_BODY[cand,c(G1,G2)], CPM=t(cpm[cand,c(G1,G2)]), sampleType=c(rep("progresssed",length(G1)),rep("nonProgressed",length(G2))))
+	colnames(temp)[3] <- "CPM"
+	
+	plot1 <- qplot(temp$sampleType,temp$CPM,geom="boxplot", colour=temp$sampleType) + theme_bw() + theme(panel.grid=element_line(linetype = 0), legend.position="none", plot.title=element_text(size=10)) + scale_y_log10() +xlab("") +ylab("Expression (reads per million)") + ggtitle(paste(cand,"; p-value=",signif(results_progression[cand,2],digits=3),", edgeR",sep="")) + scale_colour_manual(values=colour_palette)
+	plot2 <- qplot(temp$sampleType,temp$PROMOTER,geom="boxplot", colour=temp$sampleType) + theme_bw() + theme(panel.grid=element_line(linetype = 0), legend.position="none", plot.title=element_text(size=10)) +xlab("") +ylab("Pr. meth. (M-value)") + ggtitle(paste(cand,"; p-value=",signif(results_progression[cand,3],digits=3),", Welch's t-test",sep="")) + scale_colour_manual(values=colour_palette)
+	plot3 <- qplot(temp$sampleType,temp$BODY,geom="boxplot", colour=temp$sampleType) + theme_bw() + theme(panel.grid=element_line(linetype = 0), legend.position="none", plot.title=element_text(size=10)) +xlab("") +ylab("GB. meth. (M-value)") + ggtitle(paste(cand,"; p-value=",signif(results_progression[cand,4],digits=3),", Welch's t-test",sep="")) + scale_colour_manual(values=colour_palette)
+	
+	correlation_an <- signif(cor(temp[G1,1], temp[G1,2], method="spearman"),digits=2)
+	correlation_t <- signif(cor(temp[G2,1], temp[G2,2], method="spearman"),digits=2)
+	plot4 <- ggplot(temp,aes(x=PROMOTER,y=BODY,colour=sampleType)) +theme_bw() + theme(panel.grid=element_line(linetype = 0), plot.title=element_text(size=7)) + geom_point(alpha=0.25) + ggtitle(paste(cand,"; cor(progr.)=", correlation_an,", cor(nonProgr.)=", correlation_t,", Spearman's rho",sep="")) + xlab("Pr. meth. (M-value)") + ylab("GB. meth. (M-value)") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	
+	correlation_an <- signif(cor(temp[G1,1], temp[G1,3], method="spearman"),digits=2)
+	correlation_t <- signif(cor(temp[G2,1], temp[G2,3], method="spearman"),digits=2)
+	plot5 <- ggplot(temp,aes(x=PROMOTER,y=CPM,colour=sampleType)) + theme_bw() + theme(panel.grid=element_line(linetype = 0), plot.title=element_text(size=7)) + scale_y_log10() + geom_point(alpha=0.25) + ggtitle(paste(cand,"; cor(progr.)=", correlation_an,", cor(nonProgr.)=", correlation_t,", Spearman's rho",sep="")) + xlab("Pr. meth. (M-value)") + ylab("Expression (reads per million)") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	
+	correlation_an <- signif(cor(temp[G1,2], temp[G1,3], method="spearman"),digits=2)
+	correlation_t <- signif(cor(temp[G2,2], temp[G2,3], method="spearman"),digits=2)
+	plot6 <- ggplot(temp,aes(x=BODY,y=CPM,colour=sampleType)) + scale_y_log10() + theme_bw() + theme(panel.grid=element_line(linetype = 0), plot.title=element_text(size=7)) + geom_point(alpha=0.25) + ggtitle(paste(cand,"; cor(progr.)=", correlation_an,", cor(nonProgr.)=", correlation_t,", Spearman's rho",sep="")) + xlab("GB. meth. (M-value)") + ylab("Expression (reads per million)") + stat_density2d(alpha=0.5) + theme(legend.position="bottom") + scale_colour_manual(values=colour_palette)
+	print(multiplot(plot1,plot4,plot2,plot5,plot3,plot6,cols=3))
+}
+dev.off()
+
+
+
 
 # updated raw variables' distributions 
 colour_palette <- c("green4","green4","orangered4","salmon3")

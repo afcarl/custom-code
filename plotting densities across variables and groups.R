@@ -67,6 +67,10 @@ density_promoter_g2$y <- cumsum(density_promoter_g2$y)/max(cumsum(density_promot
 1-density_promoter_g2$y[which(density_promoter_g2$x >= 2)[1]]
 1-density_promoter_g1$y[which(density_promoter_g2$x >= 2)[1]]
 
+# mid-meth
+density_promoter_g2$y[which(density_promoter_g2$x >= -1)[1]]-density_promoter_g2$y[which(density_promoter_g2$x >= 1)[1]]
+density_promoter_g1$y[which(density_promoter_g2$x >= -1)[1]]-density_promoter_g1$y[which(density_promoter_g2$x >= 1)[1]]
+
 # GB
 density_body_g1 <- density(unlist(mmatrix_BRCA_BODY[,G1]),from=-7,to=7,n=2048)
 density_body_g2 <- density(unlist(mmatrix_BRCA_BODY[,G2]),from=-7,to=7,n=2048)
