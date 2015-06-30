@@ -1,0 +1,7 @@
+require(plotrix)
+pdf("temp.pdf")
+color2D.matplot(apply(tensor_product(expr_G2,body_G2,smooth_h=3,normalize = "no"),1,rev),xlab="GB. methylation bins",ylab="Gene expression bins",cs1=c(1,0),cs2=c(1,0),cs3=c(1,0),yrev=T, xat=F,yat=F,main="PLK1 tumours, Gaussian kernel smoothed")
+color2D.matplot(apply(tensor_product(expr_G1,body_G1,smooth_h=3,normalize = "no"),1,rev),xlab="GB. methylation bins",ylab="Gene expression bins",cs1=c(1,0),cs2=c(1,0),cs3=c(1,0),yrev=T, xat=F,yat=F,main="PLK1 normals, Gaussian kernel smoothed")
+color2D.matplot(apply(tensor_product(expr_G1,body_G1,smooth_h=0,normalize = "no"),1,rev),xlab="GB. methylation bins",ylab="Gene expression bins",cs1=c(1,0),cs2=c(1,0),cs3=c(1,0),yrev=T, xat=F,yat=F,main="PLK1 normals, sum of evidence")
+color2D.matplot(apply(tensor_product(expr_G2,body_G2,smooth_h=0,normalize = "no"),1,rev),xlab="GB. methylation bins",ylab="Gene expression bins",cs1=c(1,0),cs2=c(1,0),cs3=c(1,0),yrev=T, xat=F,yat=F,main="PLK1 tumours, sum of evidence")
+dev.off()
