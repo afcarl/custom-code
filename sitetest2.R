@@ -1,4 +1,3 @@
-require(IMA)
 sitetest2 <- function (bmatrix, group, groupCol=2, gcase = "g2", gcontrol = "g1", testmethod = c("wilcox", "limma", "pooled", "satterthwaite"), Padj = "BH", concov = "OFF", rawpcut = NULL, adjustpcut = NULL, betadiffcut = NULL, paired = FALSE) 
 {
     beta = bmatrix
@@ -82,3 +81,28 @@ sitetest2 <- function (bmatrix, group, groupCol=2, gcase = "g2", gcontrol = "g1"
     out = outputDMfunc(out = out, rawpcut = rawpcut, adjustpcut = adjustpcut, betadiffcut = betadiffcut)
     return(out)
 }
+outputDMfunc <-
+function(out,rawpcut = 0.05,adjustpcut =0.05,betadiffcut = 0.14){
+     
+          if(is.null(rawpcut)&is.null(adjustpcut)& is.null(betadiffcut)){
+               cat("Kept the full comparison result. Please specify the significance criteria if you are only interested in the differentially methylated regions/sites only\n");
+                out = out;
+          }else{
+                 if(!is.null(rawpcut)){
+                        rawpcutout = out[,1]<=rawpcut
+                  }else{
+                        rawpcutout = out[,1]<=1
+                  }
+                  if(!is.null(adjustpcut)){
+                        adjustpcutout = out[,2]<= adjustpcut
+                  }else{
+                       adjustpcutout = out[,2]<=1
+                  }
+                  if(!is.null(betadiffcut)){
+                       betadiffcutout = abs(out[,3])>=betadiffcut;
+                  }else{
+                       betadiffcutout = abs(out[,3])>=0;
+                  }
+                  out = out[rawpcutout&adjustpcutout&betadiffcutout,]
+           }
+  }

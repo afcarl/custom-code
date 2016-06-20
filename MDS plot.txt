@@ -12,8 +12,8 @@ require(RColorBrewer)
 pal = brewer.pal(8, "Dark2")
 col <- pal[sampGroups]
 
-o_50 <- order(-apply(bmatrix,1,sd))[1:50]
-d <- dist(t(bmatrix[updatedGenes_probes,]))
+o_10000 <- order(-apply(bmatrix_pc,1,sd))[1:10000]
+d <- dist(t(bmatrix_pc[o_10000,]))
 fit <- cmdscale(d)
 
 xlim <- range(fit[, 1]) * 1.2

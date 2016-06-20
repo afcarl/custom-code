@@ -1,7 +1,8 @@
-function (eset, concov = c("ON", "OFF"), testmethod = c("wilcox", 
-                                                        "limma", "pooled", "satterthwaite", "paired"), Padj = c("holm", 
-                                                                                                                "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"), 
-          groupinfo, gcase = "g1", gcontrol = "g2", paired = FALSE) 
+function (eset, 
+concov = c("ON", "OFF"), 
+testmethod = c("wilcox", "limma", "pooled", "satterthwaite", "paired"), 
+Padj = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"), 
+groupinfo, gcase = "g1", gcontrol = "g2", paired = FALSE)
 {
     if (concov == "ON") {
         cat("RUN linear regression\n")

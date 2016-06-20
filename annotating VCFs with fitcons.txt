@@ -1,0 +1,16 @@
+library(VariantAnnotation)
+library(rtracklayer)
+fitcons <- import("D:/WES SNP analysis/custom annotations/fitCons/fc-i6-0.bw")
+
+setwd("D:/WES SNP analysis/variants/unpacked/")
+vcfs <- dir()
+
+for (i in 1:length(vcfs)) {
+	vcf <- readVcf(vcfs[i], genome="hg19")
+	gr_hg19 <- rowRanges(vcf)
+	overlap <- findOverlaps(gr_hg19, fitcons, type="within")
+	vcf@info$FitConsScore <- NA
+	vcf@info$FitConsScore[overlap@queryHits] <- (fitcons[overlap@subjectHits])$score
+	info(header(vcf)) <- rbind(info(header(vcf)), DataFrame(Number=1, Type="Float", Description="FitCons score", row.names="FitConsScore"))
+	writeVcf(vcf, filename=paste("FC_", vcfs[i], sep=""))
+}

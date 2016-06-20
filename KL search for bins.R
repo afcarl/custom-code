@@ -228,26 +228,18 @@ expr_greedyOptims <- function(data1,data2,noBreaks,maxit=5000,method="Nelder-Mea
 
 ########### Sudhakar's ################################
 
-
-
-KL <- function(data1,data2,breaks) {
-  epsilon <- 1/length(c(data1,data2))
-	hist1 <- hist(data1,breaks=breaks,plot=FALSE)
-	hist1$counts <- (hist1$counts+epsilon)/sum(hist1$counts+epsilon)
-	hist2 <- hist(data2,breaks=breaks,plot=FALSE)
-	hist2$counts <- (hist2$counts+epsilon)/sum(hist2$counts+epsilon)
-	KL <- sum(log(hist1$counts/hist2$counts)*hist1$counts)
-	return(KL)
-}
-
-greedy_breaks <- function(data1,data2,noBreaks,resolution,maxBreak) {
-	breaks <- sort(c(min(c(data1,data2)),max(c(data1,data2))))
-	final_KLs <- vector(length=noBreaks,mode="numeric")
-	breaks_sets <- NULL
+find_greedy_breaks <- function(data1,data2,noBreaks,resolution,maxBreak) {
+	# data1 and data2 are vectors with the values to be discretized
+	# noBreaks is the requested number of binning boundaries - i.e requesting 1 break will result in 2 bins.
+	# resolution is the value at which the range of values will be probed at in the greedy evaluation
+	# maxBreak is there to allow Sudhakar to specify the maximal value his data can take - in his case it was 1.
+	breaks <- sort(c(min(c(data1,data2)),max(c(data1,data2)))) # initialize breaks to be the min and max of the data
+	final_KLs <- vector(length=noBreaks,mode="numeric") # a variable holding the KL values of selected breaks at each iteration
+	breaks_sets <- NULL # a list containing selected break sets at each iteration 
 	proposed_breaks <- seq(min(c(data1,data2)),maxBreak,resolution)
 	for (i in 1:noBreaks) {
 		which <- which(proposed_breaks %in% breaks)
-		if (length(which) > 0) proposed_breaks <- proposed_breaks[-which]
+		if (length(which) > 0) proposed_breaks <- proposed_breaks[-which] # make sure the proposed breaks do not happen to be positioned at the data. also, remove the already selected break points.
 		KLs <- vector(length=length(proposed_breaks),mode="numeric")
 		for (j in 1:length(proposed_breaks)) {
 			KLs[j] <- KL(data1,data2,sort(c(breaks,proposed_breaks[j])))
@@ -257,11 +249,23 @@ greedy_breaks <- function(data1,data2,noBreaks,resolution,maxBreak) {
 		breaks <- sort(c(breaks,proposed_breaks[which]))
 		breaks_sets[[i]] <- breaks
 	}
-	return <- NULL
-	return$breaks <- breaks_sets
-	return$KLs <- final_KLs
-	return(return)
+	return_list <- NULL
+	return_list$breaks <- breaks_sets
+	return_list$KLs <- final_KLs
+	return(return_list)
 }
+
+KL <- function(data1,data2,breaks) {
+	epsilon <- 1/length(c(data1,data2)) # we need to add epsilon to prevent KL inflation due to 0s
+	hist1 <- hist(data1,breaks=breaks,plot=FALSE)
+	hist1$counts <- (hist1$counts+epsilon)/sum(hist1$counts+epsilon)
+	hist2 <- hist(data2,breaks=breaks,plot=FALSE)
+	hist2$counts <- (hist2$counts+epsilon)/sum(hist2$counts+epsilon)
+	KL <- sum(log(hist1$counts/hist2$counts)*hist1$counts)
+	return(KL)
+}
+
+greedy_breaks <- find_greedy_breaks(rnorm(100, mean=0),rnorm(100, mean=1),noBreaks=19,resolution=0.01,maxBreak=5)
 
 KL2 <- function(breaks) {
   epsilon <- 1/length(c(data1,data2))

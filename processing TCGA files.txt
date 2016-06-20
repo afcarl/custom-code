@@ -1,25 +1,25 @@
 # RNA-seq data processing
+mkdir genes
+mv *.rsem.genes.results genes/
+cd genes
 sed -i 's/|/\t/g' *
 sed -i 's/gene_id\traw_count\tscaled_estimate\ttranscript_id/HUGO\tgene_id\traw_count\tscaled_estimate\ttranscript_id/g' *
 
 R
-
 require(plyr)
 data <- lapply(dir(), read.table, col.names=c("HUGO","gene_id","raw_count","scaled_estimate","transcript_id"), na.strings="-999.00",stringsAsFactors=FALSE)
 counts <- as.data.frame(matrix(nrow = length(data[[1]][,1])-30, ncol = length(data)+1))
-colnames(counts) <- c("HUGO",substring(dir(),9,52))
+colnames(counts) <- c("HUGO",dir())
 counts[,1] <- as.character(data[[1]][-(1:30),1])
-
 for(i in 1:length(data)){
 	counts[,1+i] <- as.numeric(data[[i]][-(1:30),3])
 }
-
 counts[16272,1] <- "SLC35E2B"
 rownames(counts) <- counts[,1]
 counts <- counts[,-1]
 
 scaled <- as.data.frame(matrix(nrow = length(data[[1]][,1])-30, ncol = length(data)+1))
-colnames(scaled) <- c("HUGO",substring(dir(),9,52))
+colnames(scaled) <- c("HUGO",dir())
 scaled[,1] <- as.character(data[[1]][-(1:30),1])
 for(i in 1:length(data)){
 	scaled[,1+i] <- as.numeric(data[[i]][-(1:30),4])
@@ -28,16 +28,28 @@ scaled[16272,1] <- "SLC35E2B"
 rownames(scaled) <- scaled[,1]
 scaled <- scaled[,-1]
 
-
-maping <- read.delim("D:/TCGA PRAD/FILE_SAMPLE_MAP.txt")
-maping <- maping[-(1:670),]
-maping[,1] <- substring(maping[,1],9,52)
-maping[,2] <- substring(maping[,2],1,15)
-
+mapping <- read.delim("rnaseq_map.tab", header=F, stringsAsFactors=F)
+ANs <- mapping[mapping[,2]=="AN",1]
+Ts <- mapping[mapping[,2]=="T",1]
 for (i in 1:ncol(counts)) {
-	colnames(counts)[i] <- maping[which(maping[,1]==colnames(counts)[i]),2]
-	colnames(scaled)[i] <- maping[which(maping[,1]==colnames(scaled)[i]),2]
+	colnames(counts)[i] <- mapping[which(mapping[,3]==colnames(counts)[i]),1]
+	colnames(scaled)[i] <- mapping[which(mapping[,3]==colnames(scaled)[i]),1]
 }
+true_ls <- apply(counts,2,sum)/apply(scaled,2,sum)
+progressed <- c("",..)
+nonProgressed <- c("",..)
+
+# 18/01/2016 preparing the progression subset
+save(progressed, nonProgressed, true_ls, counts, file="BRCA_progression.RData")
+# another R session
+load("BRCA_progression.RData")
+colnames(counts) <- substr(colnames(counts),1,12)
+names(true_ls) <- substr(names(true_ls),1,12)
+counts <- counts[,c(progressed, nonProgressed)]
+true_ls <- true_ls[c(progressed, nonProgressed)]
+save.image("BRCA_progression.RData")
+
+
 
 source("D:/TCGA PRAD/sampleNames.R")
 counts <- counts_BRCA_all[,c(ANs,Ts)]
@@ -58,17 +70,24 @@ result <- cbind(et$table,cpm_PRAD_plusOne)
 write.table(result,col.names=TRUE,row.names=TRUE,sep="\t",file="PRAD_rna-seq.tab")
 
 # 450k data
+# first prepare the Sample Sheet (as required by IMA):
+# zamienic _ na \t i w excel-u wybrac poj. linie, nastepnie wyciac kolumne z idat, dodac anotacje, upewnic sie, ze nie ma duplikatow (technicznych lub biologicznych replikatow)
 # on server (lots of memory required)
 require(minfi)
-setwd("D:/TCGA PRAD/DNA_Methylation/JHU_USC__HumanMethylation450/Level_1")
 targets <- read.450k.sheet(base=getwd())
 RGset <- read.450k.exp(getwd(),targets)
 MSet.raw <- preprocessRaw(RGset)
 
+source("peakCorrection_functions.R")
+load("fullannot.RData")
 mmatrix <- log2((getMeth(MSet.raw)+1) / (getUnmeth(MSet.raw)+1))
+colnames(mmatrix) <- targets[,1]
 bmatrix <- M2Beta(mmatrix)
 bmatrix_pc <- peak.correction(bmatrix,fullannot)
 mmatrix_pc <- Beta2M(bmatrix_pc)
+save(targets, mmatrix_pc, bmatrix_pc, file="450k_BRCA.RData") # change name here
+
+# then load up both rna-seq and 450k data and make a bundle
 
 #############################################################
 # R functions required for peak-correction
