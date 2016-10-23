@@ -29,3 +29,10 @@ for (i in 1:17728) {
 	rownames(temp) <- c(progressed,nonProgressed)
 	data_BRCA_progressing[[workingList[i]]] <- temp
 }
+
+IDs_promoter <- NULL
+IDs_body <- NULL
+for (i in 1:17728) {
+	IDs_promoter[[workingList[i]]] <- unique(c(eval(parse(text = paste('TSS1500Ind$SID$','"',workingList[i],'"',sep=""))),eval(parse(text = paste('TSS200Ind$SID$','"',workingList[i],'"',sep=""))), eval(parse(text = paste('UTR5Ind$SID$','"',workingList[i],'"',sep="")))),eval(parse(text = paste('EXON1Ind$SID$','"',workingList[i],'"',sep=""))))
+	IDs_body[[workingList[i]]] <- unique(c(eval(parse(text = paste('GENEBODYInd$SID$','"',workingList[i],'"',sep=""))), eval(parse(text = paste('UTR3Ind$SID$','"',workingList[i],'"',sep="")))))
+}

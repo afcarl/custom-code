@@ -15,7 +15,9 @@ peak.correction <- function (data, anno)
 }
 correctI <- function (BetaValues, SI, SII) 
 {
-    return(BetaValues)
+	# if (SI[2] <= 1) return(rep(NA,length(BetaValues) remove if NA is desired
+	# else 
+	return(BetaValues)
 }
 
 correctII <- function (BetaValues, SI, SII) 
@@ -25,9 +27,15 @@ correctII <- function (BetaValues, SI, SII)
     sigma_m <- SII[2]/SI[2]
     M <- sapply(M, function(x) {
         if (is.na(x)) return(NA)  ##LS##
-        if (x < 0) 
-            return(x/sigma_u)
-        else return(x/sigma_m)
+		
+        if (x < 0) {
+			if (SII[1] >= -1 | SI[1] >= -1) return(x)
+			return(x/sigma_u)
+		}
+        else {
+			if (SII[2] <= 1 | SI[2] <= 1) return(x)
+			return(x/sigma_m)
+		}
     })
     return(M2Beta(M))
 }

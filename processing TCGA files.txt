@@ -73,9 +73,10 @@ write.table(result,col.names=TRUE,row.names=TRUE,sep="\t",file="PRAD_rna-seq.tab
 # first prepare the Sample Sheet (as required by IMA):
 # zamienic _ na \t i w excel-u wybrac poj. linie, nastepnie wyciac kolumne z idat, dodac anotacje, upewnic sie, ze nie ma duplikatow (technicznych lub biologicznych replikatow)
 # on server (lots of memory required)
+/home/michal/R-3.0.1/bin/R  # old version with minfi installed on VM
 require(minfi)
 targets <- read.450k.sheet(base=getwd())
-RGset <- read.450k.exp(getwd(),targets)
+RGset <- read.450k.exp(targets=targets)
 MSet.raw <- preprocessRaw(RGset)
 
 source("peakCorrection_functions.R")
