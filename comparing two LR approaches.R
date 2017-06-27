@@ -36,7 +36,7 @@ for (j in 1:10) { # top 10 ranks
 library(pROC)
 aucs_single_lr <- vector() # single rank AUCs
 aucs_running_combinations_lr <- vector() # running combination of posteriors across ranks AUCs
-aucs_running_combinations_lr_comb <- vector()  # runningcombination of multi-gene features under one LR model AUCs
+aucs_running_combinations_lr_comb <- vector()  # running combination of multi-gene features under one LR model AUCs
 for (j in 1:10) {
 	aucs_single_lr[j] <- auc(predictor=xfold_LR_probabilities[,j],response=c(rep("G1",G1),rep("G2",G2)))
 	if (j > 1) aucs_running_combinations_lr[j] <- auc(predictor=apply(xfold_LR_probabilities[,1:j],1,prod), response=c(rep("G1",G1),rep("G2",G2)))

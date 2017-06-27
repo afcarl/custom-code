@@ -75,4 +75,12 @@ save(progressed_PRAD, nonProgressed_PRAD, file="progressionIDs052017_PRAD.RData"
 save(progressed_KIRC, nonProgressed_KIRC, file="progressionIDs052017_KIRC.RData")
 save(progressed_LUSC, nonProgressed_LUSC, file="progressionIDs052017_LUSC.RData")
 ```
+Export selecte clinical data for the publication with Tobias
+```{r}
+clinical_out <- list(BRCA = datasets[["BRCA"]], PRAD = datasets[["PRAD"]], KIRC = datasets[["KIRC"]], LUSC = datasets[["LUSC"]])
+for (i in 1:length(clinical_out)) {
+  rownames(clinical_out[[i]]@Clinical) <- paste(gsub(".", "-", toupper(rownames(clinical_out[[i]]@Clinical)), fixed=TRUE), "-01", sep="")
+}
+save(clinical_out, file="clinical_data.RData")
+```
 
