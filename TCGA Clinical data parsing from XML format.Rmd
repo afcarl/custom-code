@@ -5,7 +5,7 @@ output: html_notebook
 
 1st, parse the data
 ```{r}
-MANIFEST <- read_delim("D:/TCGA/Clinical/PRAD/raw/MANIFEST.txt", "\t", escape_double = FALSE, trim_ws = TRUE)  
+MANIFEST <- read_delim("D:/TCGA/Clinical/PRAD/raw/MANIFEST.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
 
 clinical_data <- NULL
 dir_appendage <- "D:/TCGA/Clinical/PRAD/raw/"
